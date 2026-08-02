@@ -97,10 +97,10 @@
   .mu-core-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
   .mu-core-grid.gapless{gap:0;}
   .mu-scroll{overflow-x:auto;padding-bottom:6px;}
-  .mu-section-grid{display:grid;grid-template-columns:repeat(12,minmax(52px,1fr)) 26px;gap:8px;margin-bottom:8px;min-width:700px;}
+  .mu-section-grid{display:grid;grid-template-columns:26px repeat(12,minmax(52px,1fr));gap:8px;margin-bottom:8px;min-width:700px;}
   .mu-section-grid.gapless{gap:0;}
   .mu-row-label{display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
-  .mu-col-labels{display:grid;grid-template-columns:repeat(12,minmax(52px,1fr)) 26px;gap:8px;margin-top:6px;min-width:700px;}
+  .mu-col-labels{display:grid;grid-template-columns:26px repeat(12,minmax(52px,1fr));gap:8px;margin-top:6px;min-width:700px;}
   .mu-col-labels span{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
   .mu-cell{position:relative;aspect-ratio:1/1;border-radius:5px;overflow:hidden;background:var(--line);display:block;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;}
   .mu-cell img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -431,9 +431,11 @@ function stripEdition(s){
 function findLibraryMatch(chartArtist, chartAlbum, library){
   const na = normalizeStr(chartArtist);
   const nt = normalizeStr(stripEdition(chartAlbum));
+  if(!na || !nt) return undefined;
   return library.find(a => {
     const la = normalizeStr(a.artist);
     const lt = normalizeStr(stripEdition(a.name));
+    if(!la || !lt) return false;
     const artistMatch = la === na || la.includes(na) || na.includes(la);
     const titleMatch = lt === nt || lt.includes(nt) || nt.includes(lt);
     return artistMatch && titleMatch;
@@ -464,9 +466,9 @@ function buildMuHtml(cells){
     <div class="mu-heading">Sub-/mu/ Core</div>
     <div class="mu-scroll"><div id="muSections">`;
   Object.keys(cells.sections).forEach(letter => {
-    html += `<div class="mu-section-grid">${cells.sections[letter].map(muCellHtml).join('')}<div class="mu-row-label">${letter}</div></div>`;
+    html += `<div class="mu-section-grid"><div class="mu-row-label">${letter}</div>${cells.sections[letter].map(muCellHtml).join('')}</div>`;
   });
-  html += `<div class="mu-col-labels">${Array.from({length:12}, (_,i) => `<span>${i+1}</span>`).join('')}<span></span></div>`;
+  html += `<div class="mu-col-labels"><span></span>${Array.from({length:12}, (_,i) => `<span>${i+1}</span>`).join('')}</div>`;
   html += `</div></div>`;
   return html;
 }
