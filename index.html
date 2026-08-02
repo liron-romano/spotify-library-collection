@@ -40,10 +40,6 @@
   .wrap{max-width:1180px;margin:0 auto;padding:0 32px;transition:max-width .2s ease;}
   .wrap.full-width{max-width:none;}
 
-  .col-control{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
-  .col-control input[type="range"]{width:90px;accent-color:var(--accent);}
-  .col-control .col-val{min-width:16px;text-align:center;color:var(--ink);}
-
   /* ---------- Header ---------- */
   header{padding:56px 0 28px;border-bottom:1px solid var(--line);}
   .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
@@ -103,6 +99,30 @@
   .modal-actions .again-btn{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
   .modal-actions .again-btn:hover{border-color:var(--accent);}
   .modal-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
+
+  /* ---------- Collage generator ---------- */
+  .collage-backdrop{position:fixed;inset:0;background:rgba(10,10,8,.6);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:40px 24px;overflow-y:auto;}
+  .collage-card{position:relative;background:var(--card);border-radius:16px;max-width:640px;width:100%;padding:32px;box-shadow:0 24px 60px -20px rgba(0,0,0,.4);}
+  .collage-card h2{font-family:'Fraunces',serif;font-weight:500;font-size:24px;margin:0 0 4px;}
+  .collage-card .sub{font-size:13px;color:var(--muted);margin:0 0 22px;}
+  .collage-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
+  .tab-row{display:flex;gap:8px;margin-bottom:22px;}
+  .tab-btn{flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .row-field{margin-bottom:16px;}
+  .row-field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;}
+  .row-field input[type="range"]{width:100%;accent-color:var(--accent);}
+  .row-field select, .row-field input[type="file"]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--paper);font-family:'Inter';font-size:13px;color:var(--ink);}
+  .generate-btn{width:100%;padding:12px;border:none;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-weight:500;font-size:14px;cursor:pointer;margin-top:4px;}
+  .generate-btn:disabled{opacity:.5;cursor:default;}
+  .collage-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);text-align:center;margin-top:16px;min-height:16px;}
+  .collage-output{margin-top:18px;text-align:center;}
+  .collage-output img{max-width:100%;border-radius:8px;box-shadow:0 10px 30px -10px var(--shadow);}
+  .collage-output .dl-btn{display:inline-block;margin-top:14px;padding:10px 18px;border-radius:7px;background:var(--paper);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;font-family:'Inter';font-weight:500;}
+  .collage-output .dl-btn:hover{border-color:var(--accent);}
 
   /* ---------- Login screen ---------- */
   .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
@@ -212,8 +232,8 @@ async function fetchAllAlbums(token){
   return albums;
 }
 
-/* ============ COLOR ANALYSIS (for Rainbow sort) ============ */
-function getDominantHue(url){
+/* ============ COLOR ANALYSIS (for Rainbow sort & Mosaic) ============ */
+function analyzeCoverColor(url){
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -231,10 +251,10 @@ function getDominantHue(url){
         }
         r/=n; g/=n; b/=n;
         const [h] = rgbToHsl(r,g,b);
-        resolve(h);
-      }catch(e){ resolve(0); }
+        resolve({hue:h, r, g, b});
+      }catch(e){ resolve({hue:0, r:128, g:128, b:128}); }
     };
-    img.onerror = () => resolve(0);
+    img.onerror = () => resolve({hue:0, r:128, g:128, b:128});
     img.src = url;
   });
 }
@@ -254,17 +274,38 @@ function rgbToHsl(r,g,b){
   }
   return [h, s, l];
 }
-async function ensureHues(albums){
+async function ensureColorData(albums){
   const pending = albums.filter(a => a.hue === undefined && a.image);
   const CONCURRENCY = 8;
   let idx = 0;
   async function worker(){
     while(idx < pending.length){
       const a = pending[idx++];
-      a.hue = await getDominantHue(a.image);
+      const c = await analyzeCoverColor(a.image);
+      a.hue = c.hue; a.r = c.r; a.g = c.g; a.b = c.b;
     }
   }
   await Promise.all(Array.from({length: Math.min(CONCURRENCY, pending.length)}, worker));
+}
+
+/* ============ IMAGE CACHE (for Collage) ============ */
+const IMG_CACHE = new Map();
+function loadImage(url){
+  if(IMG_CACHE.has(url)) return IMG_CACHE.get(url);
+  const p = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+  IMG_CACHE.set(url, p);
+  return p;
+}
+function drawCover(ctx, img, x, y, size){
+  const s = Math.min(img.width, img.height);
+  const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+  ctx.drawImage(img, sx, sy, s, s, x, y, size, size);
 }
 
 /* ============ RENDER: LOGIN ============ */
@@ -349,11 +390,7 @@ function renderLibrary(){
         <button class="toggle-btn" id="themeBtn">${darkOn ? '☀ Light' : '☾ Dark'}</button>
         <button class="toggle-btn" id="gaplessBtn">▦ Gapless</button>
         <button class="toggle-btn" id="fullWidthBtn">⇔ Fill screen</button>
-        <div class="col-control">
-          <span>Per row</span>
-          <input type="range" id="colSlider" min="3" max="12" value="5">
-          <span class="col-val" id="colVal">5</span>
-        </div>
+        <button class="toggle-btn" id="collageBtn">🖼 Collage</button>
         <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
       </div>
     </div>
@@ -369,7 +406,6 @@ function renderLibrary(){
   let ascending = true;
   let gapless = false;
   let fullWidth = false;
-  let columns = 5;
 
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
@@ -377,8 +413,7 @@ function renderLibrary(){
   const themeBtn = document.getElementById('themeBtn');
   const gaplessBtn = document.getElementById('gaplessBtn');
   const fullWidthBtn = document.getElementById('fullWidthBtn');
-  const colSlider = document.getElementById('colSlider');
-  const colVal = document.getElementById('colVal');
+  const collageBtn = document.getElementById('collageBtn');
   const randomBtn = document.getElementById('randomBtn');
   const grid = document.getElementById('grid');
 
@@ -393,7 +428,7 @@ function renderLibrary(){
     if(sortKey === 'rainbow'){
       sortSelect.disabled = true;
       renderLoadingInline('Analyzing cover colors…');
-      await ensureHues(list);
+      await ensureColorData(list);
       sortSelect.disabled = false;
       list.sort((a,b) => (ascending ? 1 : -1) * ((a.hue||0) - (b.hue||0)));
     } else {
@@ -430,7 +465,7 @@ function renderLibrary(){
     grid.style.display = 'grid';
     empty.style.display = 'none';
     grid.className = 'grid' + (gapless ? ' gapless' : '');
-    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    grid.style.gridTemplateColumns = '';
     grid.innerHTML = list.map(a => `
       <a class="album" href="${a.url}" target="_blank" rel="noopener" title="${a.name} — ${a.artist} (${a.year})">
         <div class="cover-wrap"><img src="${a.image}" alt="${a.name}" loading="lazy"></div>
@@ -450,7 +485,6 @@ function renderLibrary(){
       <div class="modal-backdrop" id="modalBackdrop">
         <div class="modal-card">
           <button class="modal-close" id="modalClose">✕</button>
-          <p class="eyebrow">On rotation</p>
           <img src="${pick.image}" alt="${pick.name}">
           <p class="title">${pick.name}</p>
           <p class="artist">${pick.artist}</p>
@@ -469,6 +503,284 @@ function renderLibrary(){
   }
   function closeModal(){
     document.getElementById('modalRoot').innerHTML = '';
+  }
+
+  function openCollageModal(){
+    const root = document.getElementById('modalRoot');
+    root.innerHTML = `
+      <div class="collage-backdrop" id="collageBackdrop">
+        <div class="collage-card">
+          <button class="collage-close" id="collageClose">✕</button>
+          <h2>Collage Generator</h2>
+          <p class="sub">Build a poster from your library's album covers.</p>
+          <div class="tab-row">
+            <button class="tab-btn active" data-tab="grid">Grid</button>
+            <button class="tab-btn" data-tab="shape">Shape</button>
+            <button class="tab-btn" data-tab="mosaic">Mosaic</button>
+          </div>
+
+          <div class="panel active" data-panel="grid">
+            <div class="row-field">
+              <label>Grid size — <span id="gridSizeVal">8</span> × <span id="gridSizeVal2">8</span></label>
+              <input type="range" id="gridSizeSlider" min="3" max="15" value="8">
+            </div>
+            <button class="generate-btn" id="genGridBtn">Generate grid collage</button>
+          </div>
+
+          <div class="panel" data-panel="shape">
+            <div class="row-field">
+              <label>Shape</label>
+              <select id="shapeSelect">
+                <option value="circle">Circle</option>
+                <option value="heart">Heart</option>
+                <option value="diamond">Diamond</option>
+                <option value="star">Star</option>
+              </select>
+            </div>
+            <div class="row-field">
+              <label>Detail — <span id="shapeDetailVal">22</span> tiles across</label>
+              <input type="range" id="shapeDetailSlider" min="10" max="36" value="22">
+            </div>
+            <button class="generate-btn" id="genShapeBtn">Generate shape collage</button>
+          </div>
+
+          <div class="panel" data-panel="mosaic">
+            <div class="row-field">
+              <label>Source image</label>
+              <input type="file" id="mosaicFile" accept="image/*">
+            </div>
+            <div class="row-field">
+              <label>Detail — <span id="mosaicDetailVal">40</span> tiles wide</label>
+              <input type="range" id="mosaicDetailSlider" min="15" max="70" value="40">
+            </div>
+            <button class="generate-btn" id="genMosaicBtn" disabled>Upload an image first</button>
+          </div>
+
+          <div class="collage-status" id="collageStatus"></div>
+          <div class="collage-output" id="collageOutput"></div>
+        </div>
+      </div>`;
+
+    document.getElementById('collageClose').onclick = () => root.innerHTML = '';
+    document.getElementById('collageBackdrop').addEventListener('click', (e) => {
+      if(e.target.id === 'collageBackdrop') root.innerHTML = '';
+    });
+
+    root.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        root.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        root.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        root.querySelector(`.panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+        document.getElementById('collageOutput').innerHTML = '';
+        document.getElementById('collageStatus').textContent = '';
+      });
+    });
+
+    const statusEl = document.getElementById('collageStatus');
+    const outputEl = document.getElementById('collageOutput');
+
+    function showOutput(canvas, filename){
+      outputEl.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = canvas.toDataURL('image/png');
+      outputEl.appendChild(img);
+      outputEl.appendChild(document.createElement('br'));
+      const dl = document.createElement('a');
+      dl.className = 'dl-btn';
+      dl.textContent = 'Download PNG';
+      dl.href = img.src;
+      dl.download = filename;
+      outputEl.appendChild(dl);
+    }
+
+    function buildShapePath(name, size){
+      const p = new Path2D();
+      const c = size / 2;
+      if(name === 'circle'){
+        p.arc(c, c, size * 0.46, 0, Math.PI * 2);
+      } else if(name === 'diamond'){
+        p.moveTo(c, size * 0.04);
+        p.lineTo(size * 0.96, c);
+        p.lineTo(c, size * 0.96);
+        p.lineTo(size * 0.04, c);
+        p.closePath();
+      } else if(name === 'heart'){
+        const scale = size / 34, cx = c, cy = c + size * 0.05;
+        for(let i = 0; i <= 100; i++){
+          const t = (i / 100) * Math.PI * 2;
+          const x = 16 * Math.pow(Math.sin(t), 3);
+          const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+          const px = cx + x * scale, py = cy + y * scale * 0.9;
+          if(i === 0) p.moveTo(px, py); else p.lineTo(px, py);
+        }
+        p.closePath();
+      } else if(name === 'star'){
+        const spikes = 5, outerR = size * 0.48, innerR = size * 0.2;
+        let rot = Math.PI / 2 * 3;
+        const step = Math.PI / spikes;
+        p.moveTo(c, c - outerR);
+        for(let i = 0; i < spikes; i++){
+          let x = c + Math.cos(rot) * outerR, y = c + Math.sin(rot) * outerR;
+          p.lineTo(x, y); rot += step;
+          x = c + Math.cos(rot) * innerR; y = c + Math.sin(rot) * innerR;
+          p.lineTo(x, y); rot += step;
+        }
+        p.closePath();
+      }
+      return p;
+    }
+
+    /* ---- Grid mode ---- */
+    const gridSizeSlider = document.getElementById('gridSizeSlider');
+    gridSizeSlider.addEventListener('input', () => {
+      document.getElementById('gridSizeVal').textContent = gridSizeSlider.value;
+      document.getElementById('gridSizeVal2').textContent = gridSizeSlider.value;
+    });
+    document.getElementById('genGridBtn').addEventListener('click', async (e) => {
+      if(ALL_ALBUMS.length === 0){ statusEl.textContent = 'No albums to work with.'; return; }
+      const btn = e.target; btn.disabled = true;
+      const n = Number(gridSizeSlider.value);
+      const tile = 90;
+      const size = n * tile;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      outputEl.innerHTML = '';
+      const pool = ALL_ALBUMS.filter(a => a.image);
+      const picks = Array.from({length: n*n}, () => pool[Math.floor(Math.random() * pool.length)]);
+      let loaded = 0;
+      await Promise.all(picks.map(async (a, i) => {
+        try{
+          const img = await loadImage(a.image);
+          drawCover(ctx, img, (i % n) * tile, Math.floor(i / n) * tile, tile);
+        }catch(err){}
+        loaded++;
+        statusEl.textContent = `Loading covers… ${loaded}/${picks.length}`;
+      }));
+      statusEl.textContent = '';
+      btn.disabled = false;
+      showOutput(canvas, 'album-grid-collage.png');
+    });
+
+    /* ---- Shape mode ---- */
+    const shapeDetailSlider = document.getElementById('shapeDetailSlider');
+    shapeDetailSlider.addEventListener('input', () => {
+      document.getElementById('shapeDetailVal').textContent = shapeDetailSlider.value;
+    });
+    document.getElementById('genShapeBtn').addEventListener('click', async (e) => {
+      if(ALL_ALBUMS.length === 0){ statusEl.textContent = 'No albums to work with.'; return; }
+      const btn = e.target; btn.disabled = true;
+      const shapeName = document.getElementById('shapeSelect').value;
+      const cols = Number(shapeDetailSlider.value);
+      const size = 720;
+      const tile = size / cols;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const path = buildShapePath(shapeName, size);
+
+      const cells = [];
+      for(let row = 0; row < cols; row++){
+        for(let col = 0; col < cols; col++){
+          const cx = col*tile + tile/2, cy = row*tile + tile/2;
+          if(ctx.isPointInPath(path, cx, cy)) cells.push({col, row});
+        }
+      }
+      if(cells.length === 0){ statusEl.textContent = 'Try a higher detail level.'; btn.disabled = false; return; }
+
+      const pool = ALL_ALBUMS.filter(a => a.image);
+      outputEl.innerHTML = '';
+      let loaded = 0;
+      ctx.save();
+      ctx.clip(path);
+      await Promise.all(cells.map(async (cell) => {
+        const a = pool[Math.floor(Math.random() * pool.length)];
+        try{
+          const img = await loadImage(a.image);
+          drawCover(ctx, img, cell.col*tile, cell.row*tile, tile + 1);
+        }catch(err){}
+        loaded++;
+        statusEl.textContent = `Loading covers… ${loaded}/${cells.length}`;
+      }));
+      ctx.restore();
+      statusEl.textContent = '';
+      btn.disabled = false;
+      showOutput(canvas, `album-${shapeName}-collage.png`);
+    });
+
+    /* ---- Mosaic mode ---- */
+    let mosaicImg = null;
+    const mosaicFile = document.getElementById('mosaicFile');
+    const genMosaicBtn = document.getElementById('genMosaicBtn');
+    const mosaicDetailSlider = document.getElementById('mosaicDetailSlider');
+    mosaicDetailSlider.addEventListener('input', () => {
+      document.getElementById('mosaicDetailVal').textContent = mosaicDetailSlider.value;
+    });
+    mosaicFile.addEventListener('change', () => {
+      const file = mosaicFile.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          mosaicImg = img;
+          genMosaicBtn.disabled = false;
+          genMosaicBtn.textContent = 'Generate mosaic';
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    genMosaicBtn.addEventListener('click', async (e) => {
+      if(!mosaicImg || ALL_ALBUMS.length === 0) return;
+      const btn = e.target; btn.disabled = true;
+      const cols = Number(mosaicDetailSlider.value);
+      const rows = Math.max(1, Math.round(cols * (mosaicImg.height / mosaicImg.width)));
+
+      statusEl.textContent = 'Analyzing your library\u2019s colors…';
+      outputEl.innerHTML = '';
+      const withImages = ALL_ALBUMS.filter(a => a.image);
+      await ensureColorData(withImages);
+
+      const sampleCanvas = document.createElement('canvas');
+      sampleCanvas.width = cols; sampleCanvas.height = rows;
+      const sctx = sampleCanvas.getContext('2d');
+      sctx.drawImage(mosaicImg, 0, 0, cols, rows);
+      const sampleData = sctx.getImageData(0, 0, cols, rows).data;
+
+      const pool = withImages.filter(a => a.r !== undefined);
+      if(pool.length === 0){ statusEl.textContent = 'Could not analyze library colors.'; btn.disabled = false; return; }
+
+      const tile = 24;
+      const canvas = document.createElement('canvas');
+      canvas.width = cols * tile; canvas.height = rows * tile;
+      const ctx = canvas.getContext('2d');
+
+      let done = 0;
+      const total = cols * rows;
+      for(let row = 0; row < rows; row++){
+        for(let col = 0; col < cols; col++){
+          const idx = (row*cols + col) * 4;
+          const tr = sampleData[idx], tg = sampleData[idx+1], tb = sampleData[idx+2];
+          let best = pool[0], bestDist = Infinity;
+          for(const a of pool){
+            const d = (a.r-tr)**2 + (a.g-tg)**2 + (a.b-tb)**2;
+            if(d < bestDist){ bestDist = d; best = a; }
+          }
+          try{
+            const img = await loadImage(best.image);
+            drawCover(ctx, img, col*tile, row*tile, tile + 1);
+          }catch(err){}
+          done++;
+          if(done % 25 === 0) statusEl.textContent = `Building mosaic… ${done}/${total}`;
+        }
+      }
+      statusEl.textContent = '';
+      btn.disabled = false;
+      showOutput(canvas, 'album-mosaic.png');
+    });
   }
 
   searchInput.addEventListener('input', apply);
@@ -495,11 +807,7 @@ function renderLibrary(){
     fullWidthBtn.classList.toggle('active', fullWidth);
     document.querySelectorAll('[data-wrap]').forEach(el => el.classList.toggle('full-width', fullWidth));
   });
-  colSlider.addEventListener('input', () => {
-    columns = Number(colSlider.value);
-    colVal.textContent = columns;
-    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-  });
+  collageBtn.addEventListener('click', openCollageModal);
   randomBtn.addEventListener('click', openRandomModal);
 
   apply();
