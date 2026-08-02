@@ -13,18 +13,22 @@
     --muted:#8A8778;
     --line:#E2E0D6;
     --accent:#20402D;
+    --accent-fg:#FFFFFF;
     --accent-soft:#E7EEE7;
     --card:#FFFFFF;
+    --shadow:rgba(20,20,15,.25);
   }
 
   [data-theme="dark"]{
-    --paper:#151513;
+    --paper:#141412;
     --ink:#F1F0E9;
-    --muted:#8F8C7E;
+    --muted:#93907F;
     --line:#2C2B27;
-    --accent:#7FCB9C;
-    --accent-soft:#1E2B22;
-    --card:#1C1C19;
+    --accent:#6FBE93;
+    --accent-fg:#0E1712;
+    --accent-soft:#1C2A20;
+    --card:#1D1D1A;
+    --shadow:rgba(0,0,0,.45);
   }
 
   *{box-sizing:border-box;}
@@ -62,7 +66,7 @@
 
   .toggle-btn{padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;}
   .toggle-btn:hover{color:var(--ink);border-color:var(--accent);}
-  .toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .toggle-btn.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
   .toggle-btn.rainbow.active{background:linear-gradient(90deg,#e14b4b,#e2a63d,#dfd23c,#4bbf6b,#3f8fe0,#8a5fe0);color:#fff;border-color:transparent;}
 
   /* ---------- Grid ---------- */
@@ -70,7 +74,7 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;transition:gap .2s ease;}
   .album{cursor:pointer;text-decoration:none;display:block;}
   .cover-wrap{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .2s ease, box-shadow .2s ease, border-radius .2s ease;}
-  .album:hover .cover-wrap{transform:translateY(-3px);box-shadow:0 14px 24px -10px rgba(20,20,15,.25);}
+  .album:hover .cover-wrap{transform:translateY(-3px);box-shadow:0 14px 24px -10px var(--shadow);}
   .cover-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
   .meta{margin-top:10px;}
   .meta .title{font-size:14px;font-weight:500;line-height:1.3;margin:0 0 2px;color:var(--ink);}
@@ -95,7 +99,7 @@
   .modal-card .year{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:0 0 22px;}
   .modal-actions{display:flex;gap:10px;}
   .modal-actions a, .modal-actions button{flex:1;padding:11px;border-radius:7px;font-family:'Inter';font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}
-  .modal-actions .open-link{background:var(--accent);color:#fff;border:none;}
+  .modal-actions .open-link{background:var(--accent);color:var(--accent-fg);border:none;}
   .modal-actions .again-btn{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
   .modal-actions .again-btn:hover{border-color:var(--accent);}
   .modal-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
@@ -109,10 +113,10 @@
   .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;}
   .field input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter';font-size:14px;background:var(--paper);outline:none;}
   .field input:focus{border-color:var(--accent);}
-  .connect-btn{width:100%;padding:13px;border:none;border-radius:7px;background:var(--accent);color:#fff;font-family:'Inter';font-weight:500;font-size:14px;cursor:pointer;margin-top:6px;}
+  .connect-btn{width:100%;padding:13px;border:none;border-radius:7px;background:var(--accent);color:var(--accent-fg);font-family:'Inter';font-weight:500;font-size:14px;cursor:pointer;margin-top:6px;}
   .connect-btn:hover{opacity:.92;}
   .hint{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;}
-  .hint code{background:var(--accent-soft);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .hint code{background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
   .error-msg{background:#FBEAE8;color:#9B3B2F;padding:10px 12px;border-radius:7px;font-size:13px;margin-bottom:16px;}
 
   .loading{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:13px;}
@@ -152,7 +156,7 @@ async function startAuth(clientId){
   const verifier = randomString(64);
   const challenge = base64url(await sha256(verifier));
   sessionStorage.setItem('pkce_verifier', verifier);
-  sessionStorage.setItem('spotify_client_id', clientId);
+  localStorage.setItem('spotify_client_id', clientId);
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -167,7 +171,7 @@ async function startAuth(clientId){
 
 async function exchangeCode(code){
   const verifier = sessionStorage.getItem('pkce_verifier');
-  const clientId = sessionStorage.getItem('spotify_client_id');
+  const clientId = localStorage.getItem('spotify_client_id');
   const body = new URLSearchParams({
     client_id: clientId,
     grant_type: 'authorization_code',
@@ -182,8 +186,8 @@ async function exchangeCode(code){
   });
   if(!res.ok) throw new Error('Token exchange failed');
   const data = await res.json();
-  sessionStorage.setItem('access_token', data.access_token);
-  sessionStorage.setItem('token_expires', Date.now() + data.expires_in*1000);
+  localStorage.setItem('access_token', data.access_token);
+  localStorage.setItem('token_expires', Date.now() + data.expires_in*1000);
 }
 
 /* ============ DATA FETCH ============ */
@@ -266,30 +270,45 @@ async function ensureHues(albums){
 /* ============ RENDER: LOGIN ============ */
 function renderLogin(errorMsg){
   const app = document.getElementById('app');
+  const savedClientId = localStorage.getItem('spotify_client_id');
+
   app.innerHTML = `
     <div class="login-screen">
       <div class="login-card">
         <h1>Your Collection</h1>
         <p>Connect your Spotify account to view your saved albums as a browsable grid.</p>
         ${errorMsg ? `<div class="error-msg">${errorMsg}</div>` : ''}
+        ${savedClientId ? '' : `
         <div class="field">
           <label>Client ID</label>
           <input id="clientId" type="text" placeholder="from your Spotify Developer Dashboard" autocomplete="off">
-        </div>
+        </div>`}
         <button class="connect-btn" id="connectBtn">Connect to Spotify</button>
+        ${savedClientId ? `<div class="hint" style="text-align:center;"><a href="#" id="resetIdLink">Use a different Client ID</a></div>` : `
         <div class="hint">
           In your <a href="https://developer.spotify.com/dashboard" target="_blank">Spotify Developer Dashboard</a>,
           add this exact Redirect URI to your app's settings:<br>
           <code>${REDIRECT_URI}</code><br><br>
           No client secret needed — this uses the secure PKCE flow, so nothing sensitive is ever exposed in the browser.
-        </div>
+          You'll only need to enter this once — it's remembered on this device from here on.
+        </div>`}
       </div>
     </div>`;
+
   document.getElementById('connectBtn').onclick = () => {
-    const id = document.getElementById('clientId').value.trim();
+    const id = savedClientId || document.getElementById('clientId').value.trim();
     if(!id){ alert('Enter your Client ID first.'); return; }
     startAuth(id);
   };
+
+  const resetLink = document.getElementById('resetIdLink');
+  if(resetLink){
+    resetLink.onclick = (e) => {
+      e.preventDefault();
+      localStorage.removeItem('spotify_client_id');
+      renderLogin();
+    };
+  }
 }
 
 function renderLoading(msg){
@@ -301,7 +320,7 @@ let ALL_ALBUMS = [];
 
 function renderLibrary(){
   const app = document.getElementById('app');
-  const darkOn = sessionStorage.getItem('theme') === 'dark';
+  const darkOn = localStorage.getItem('theme') === 'dark';
   document.documentElement.setAttribute('data-theme', darkOn ? 'dark' : 'light');
   const gaplessOn = false;
 
@@ -332,8 +351,8 @@ function renderLibrary(){
         <button class="toggle-btn" id="fullWidthBtn">⇔ Fill screen</button>
         <div class="col-control">
           <span>Per row</span>
-          <input type="range" id="colSlider" min="0" max="12" value="0">
-          <span class="col-val" id="colVal">Auto</span>
+          <input type="range" id="colSlider" min="3" max="12" value="5">
+          <span class="col-val" id="colVal">5</span>
         </div>
         <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
       </div>
@@ -350,7 +369,7 @@ function renderLibrary(){
   let ascending = true;
   let gapless = false;
   let fullWidth = false;
-  let columns = 0; // 0 = auto
+  let columns = 5;
 
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
@@ -411,9 +430,7 @@ function renderLibrary(){
     grid.style.display = 'grid';
     empty.style.display = 'none';
     grid.className = 'grid' + (gapless ? ' gapless' : '');
-    grid.style.gridTemplateColumns = columns > 0
-      ? `repeat(${columns}, 1fr)`
-      : 'repeat(auto-fill, minmax(190px, 1fr))';
+    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
     grid.innerHTML = list.map(a => `
       <a class="album" href="${a.url}" target="_blank" rel="noopener" title="${a.name} — ${a.artist} (${a.year})">
         <div class="cover-wrap"><img src="${a.image}" alt="${a.name}" loading="lazy"></div>
@@ -433,7 +450,7 @@ function renderLibrary(){
       <div class="modal-backdrop" id="modalBackdrop">
         <div class="modal-card">
           <button class="modal-close" id="modalClose">✕</button>
-          <p class="eyebrow">Tonight's pick</p>
+          <p class="eyebrow">On rotation</p>
           <img src="${pick.image}" alt="${pick.name}">
           <p class="title">${pick.name}</p>
           <p class="artist">${pick.artist}</p>
@@ -465,7 +482,7 @@ function renderLibrary(){
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const next = isDark ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    sessionStorage.setItem('theme', next);
+    localStorage.setItem('theme', next);
     themeBtn.textContent = next === 'dark' ? '☀ Light' : '☾ Dark';
   });
   gaplessBtn.addEventListener('click', () => {
@@ -480,10 +497,8 @@ function renderLibrary(){
   });
   colSlider.addEventListener('input', () => {
     columns = Number(colSlider.value);
-    colVal.textContent = columns === 0 ? 'Auto' : columns;
-    grid.style.gridTemplateColumns = columns > 0
-      ? `repeat(${columns}, 1fr)`
-      : 'repeat(auto-fill, minmax(190px, 1fr))';
+    colVal.textContent = columns;
+    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
   });
   randomBtn.addEventListener('click', openRandomModal);
 
@@ -512,8 +527,8 @@ async function init(){
     }
   }
 
-  const token = sessionStorage.getItem('access_token');
-  const expires = sessionStorage.getItem('token_expires');
+  const token = localStorage.getItem('access_token');
+  const expires = localStorage.getItem('token_expires');
 
   if(!token || Date.now() > Number(expires)){
     renderLogin();
