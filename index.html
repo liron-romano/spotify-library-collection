@@ -105,13 +105,29 @@
   .mu-cell{position:relative;aspect-ratio:1/1;border-radius:5px;overflow:hidden;background:var(--line);display:block;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;}
   .mu-cell img{width:100%;height:100%;object-fit:cover;display:block;}
   a.mu-cell:hover{transform:translateY(-2px);box-shadow:0 10px 18px -8px var(--shadow);}
-  .mu-cell.grayed{filter:grayscale(1);opacity:.4;}
+  .mu-cell.grayed{filter:grayscale(1);opacity:.4;transition:filter .18s ease, opacity .18s ease, transform .15s ease, box-shadow .15s ease;}
   div.mu-cell.grayed{cursor:default;}
-  .mu-cell.grayed:hover{opacity:.65;}
+  /* Hover reveals the album in full color, even when it's not in the Spotify library */
+  .mu-cell.grayed:hover{filter:none;opacity:1;}
   .mu-cell.dimmed{opacity:.08 !important;pointer-events:none;}
   .mu-cell .fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:8.5px;line-height:1.25;color:var(--muted);text-align:center;padding:4px;}
   .mu-core-grid.gapless .mu-cell, .mu-section-grid.gapless .mu-cell{border-radius:0;}
   .mu-count-note{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:20px;}
+
+  /* ---------- Owned (marked as "in your library") toggle on /mu/ cells ---------- */
+  .mu-owned-toggle{position:absolute;top:3px;right:3px;width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s ease, transform .1s ease, background .15s ease, color .15s ease;z-index:2;}
+  .mu-cell:hover .mu-owned-toggle{opacity:1;}
+  .mu-owned-toggle:hover{transform:scale(1.15);}
+  .mu-owned-toggle.active{opacity:1;background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+  /* Marked-owned cells stay in full color permanently, with a subtle ring to distinguish them from a real Spotify match */
+  .mu-cell.grayed.owned{filter:none;opacity:1;box-shadow:inset 0 0 0 2px var(--accent);}
+  .mu-cell.grayed.owned:hover{box-shadow:inset 0 0 0 2px var(--accent);}
+
+  /* ---------- Sync settings modal ---------- */
+  .sync-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:-10px 0 18px;line-height:1.6;}
+  .sync-status.ok{color:#3f8f5f;}
+  .sync-clear-btn{width:100%;padding:11px;border-radius:7px;background:var(--paper);color:var(--muted);border:1px solid var(--line);font-family:'Inter';font-size:13px;cursor:pointer;margin-top:10px;}
+  .sync-clear-btn:hover{border-color:var(--accent);color:var(--ink);}
 
   /* ---------- Random pick modal ---------- */
   .modal-backdrop{position:fixed;inset:0;background:rgba(10,10,8,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;}
@@ -459,8 +475,10 @@ function muCellHtml(cell){
     </a>`;
   }
   const key = escapeHtml(normalizeStr(cell.artist) + '|' + normalizeStr(cell.title));
-  return `<div class="mu-cell grayed" id="${elId}" title="${label}" data-q="${q}" data-key="${key}" data-artist="${escapeHtml(cell.artist)}" data-title="${escapeHtml(cell.title)}">
+  const owned = isOwned(key);
+  return `<div class="mu-cell grayed${owned ? ' owned' : ''}" id="${elId}" title="${label}" data-q="${q}" data-key="${key}" data-artist="${escapeHtml(cell.artist)}" data-title="${escapeHtml(cell.title)}">
     <div class="fallback">${escapeHtml(cell.title)}</div>
+    <button class="mu-owned-toggle${owned ? ' active' : ''}" type="button" data-key="${key}" data-artist="${escapeHtml(cell.artist)}" data-title="${escapeHtml(cell.title)}" title="${owned ? 'Marked as in your library' : 'Mark as in your library'}">${owned ? '✓' : '+'}</button>
   </div>`;
 }
 function buildMuHtml(cells){
@@ -533,15 +551,88 @@ async function searchSpotifyAlbum(token, artist, title){
   if(!item) return null;
   return {
     image: (item.images[1] || item.images[0] || {}).url || '',
-    url: item.external_urls.spotify
+    url: item.external_urls.spotify,
+    source: 'spotify'
   };
 }
-function applyChartArt(elId, label, q, result){
-  if(!result || !result.image) return;
+
+/* iTunes Search API — no key required, CORS-enabled, decent hit rate as a second opinion. */
+async function searchItunesAlbum(artist, title){
+  const q = encodeURIComponent(`${artist} ${title}`);
+  try{
+    const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=album&limit=1`);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const item = data.results && data.results[0];
+    if(!item || !item.artworkUrl100) return null;
+    return {
+      image: item.artworkUrl100.replace('100x100bb', '600x600bb'),
+      url: item.collectionViewUrl || '',
+      source: 'itunes'
+    };
+  }catch(e){ return null; }
+}
+
+/* MusicBrainz + Cover Art Archive — last resort, catches obscure/out-of-print releases.
+   MusicBrainz asks that unauthenticated clients stay around 1 request/second, so calls
+   here are queued through a shared throttle rather than fired concurrently. */
+let mbQueue = Promise.resolve();
+function mbThrottled(fn){
+  const run = mbQueue.then(() => fn().finally(() => new Promise(r => setTimeout(r, 1100))));
+  mbQueue = run.catch(() => {});
+  return run;
+}
+async function searchMusicBrainzAlbum(artist, title){
+  return mbThrottled(async () => {
+    try{
+      const q = encodeURIComponent(`releasegroup:"${title}" AND artist:"${artist}"`);
+      const res = await fetch(`https://musicbrainz.org/ws/2/release-group/?query=${q}&fmt=json&limit=1`, {
+        headers: { Accept: 'application/json' }
+      });
+      if(!res.ok) return null;
+      const data = await res.json();
+      const rg = data['release-groups'] && data['release-groups'][0];
+      if(!rg) return null;
+      const image = `https://coverartarchive.org/release-group/${rg.id}/front-250`;
+      const check = await fetch(image, { method: 'HEAD' }).catch(() => null);
+      if(!check || !check.ok) return null;
+      return {
+        image,
+        url: `https://musicbrainz.org/release-group/${rg.id}`,
+        source: 'musicbrainz'
+      };
+    }catch(e){ return null; }
+  });
+}
+
+/* Tries Spotify's own search first (best match quality, needs the user's token),
+   then falls back to iTunes, then MusicBrainz/Cover Art Archive for anything still missing. */
+async function findChartArt(token, artist, title){
+  if(token){
+    const s = await searchSpotifyAlbum(token, artist, title).catch(() => null);
+    if(s && s.image) return s;
+  }
+  const it = await searchItunesAlbum(artist, title);
+  if(it && it.image) return it;
+  const mb = await searchMusicBrainzAlbum(artist, title);
+  if(mb && mb.image) return mb;
+  return null;
+}
+
+function applyChartArt(elId, label, q, result, key, artist, title){
   const el = document.getElementById(elId);
   if(!el) return;
-  el.outerHTML = `<a class="mu-cell grayed" id="${elId}" href="${result.url}" target="_blank" rel="noopener" title="${label}" data-q="${q}">
+  const owned = isOwned(key);
+  const toggleBtn = `<button class="mu-owned-toggle${owned ? ' active' : ''}" type="button" data-key="${key}" data-artist="${escapeHtml(artist)}" data-title="${escapeHtml(title)}" title="${owned ? 'Marked as in your library' : 'Mark as in your library'}">${owned ? '✓' : '+'}</button>`;
+  if(!result || !result.image){
+    // No art found anywhere — keep the text fallback, but make sure the owned toggle is present.
+    el.classList.toggle('owned', owned);
+    if(!el.querySelector('.mu-owned-toggle')) el.insertAdjacentHTML('beforeend', toggleBtn);
+    return;
+  }
+  el.outerHTML = `<a class="mu-cell grayed${owned ? ' owned' : ''}" id="${elId}" href="${result.url}" target="_blank" rel="noopener" title="${label}" data-q="${q}" data-key="${key}" data-artist="${escapeHtml(artist)}" data-title="${escapeHtml(title)}">
     <img src="${PLACEHOLDER_IMG}" data-src="${result.image}" alt="${label}" loading="lazy">
+    ${toggleBtn}
   </a>`;
   const newEl = document.getElementById(elId);
   const img = newEl && newEl.querySelector('img[data-src]');
@@ -549,7 +640,6 @@ function applyChartArt(elId, label, q, result){
 }
 async function hydrateChartArt(muFlat){
   const token = localStorage.getItem('access_token');
-  if(!token) return;
   const cache = loadChartArtCache();
   const pending = [];
   muFlat.forEach(cell => {
@@ -559,7 +649,7 @@ async function hydrateChartArt(muFlat){
     const label = escapeHtml(`${cell.title} — ${cell.artist}`);
     const q = escapeHtml((cell.artist + ' ' + cell.title).toLowerCase());
     if(Object.prototype.hasOwnProperty.call(cache, key)){
-      applyChartArt(elId, label, q, cache[key]);
+      applyChartArt(elId, label, q, cache[key], key, cell.artist, cell.title);
     } else {
       pending.push({ key, elId, label, q, artist: cell.artist, title: cell.title });
     }
@@ -571,13 +661,92 @@ async function hydrateChartArt(muFlat){
     while(idx < pending.length){
       const item = pending[idx++];
       let result = null;
-      try{ result = await searchSpotifyAlbum(token, item.artist, item.title); }catch(e){ result = null; }
+      try{ result = await findChartArt(token, item.artist, item.title); }catch(e){ result = null; }
       cache[item.key] = result;
-      applyChartArt(item.elId, item.label, item.q, result);
+      applyChartArt(item.elId, item.label, item.q, result, item.key, item.artist, item.title);
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, worker));
   saveChartArtCache(cache);
+}
+
+/* ============ OWNED (MARKED AS "IN YOUR LIBRARY") TRACKING ============
+   For /mu/ albums that aren't on Spotify at all — e.g. ones you downloaded locally —
+   this lets you flag them as "in your library" independent of Spotify's own data. */
+const OWNED_KEY = 'mu_owned_albums_v1';
+function loadOwned(){
+  try{ return JSON.parse(localStorage.getItem(OWNED_KEY) || '{}'); }catch(e){ return {}; }
+}
+function saveOwned(obj){
+  try{ localStorage.setItem(OWNED_KEY, JSON.stringify(obj)); }catch(e){}
+}
+function isOwned(key){
+  const o = loadOwned();
+  return !!(o[key] && o[key].owned);
+}
+let ownedSyncTimer = null;
+function setOwned(key, artist, title, owned){
+  const o = loadOwned();
+  o[key] = { owned, artist, title, updatedAt: Date.now() };
+  saveOwned(o);
+  clearTimeout(ownedSyncTimer);
+  ownedSyncTimer = setTimeout(() => syncPush(loadOwned()), 800);
+  return o[key];
+}
+
+/* ============ CROSS-DEVICE SYNC (optional) ============
+   Pure client-side localStorage only survives on one browser/device. To carry "owned"
+   marks across devices you need somewhere to store them server-side — see the Sync
+   settings modal and the deployment notes for a small hosted key-value endpoint. */
+function getSyncConfig(){
+  const url = localStorage.getItem('sync_url');
+  const token = localStorage.getItem('sync_token');
+  const user = localStorage.getItem('spotify_user_id');
+  if(!url || !token || !user) return null;
+  return { url: url.replace(/\/+$/,''), token, user };
+}
+async function fetchSpotifyUserId(token){
+  const cached = localStorage.getItem('spotify_user_id');
+  if(cached) return cached;
+  try{
+    const res = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: 'Bearer ' + token } });
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data.id){ localStorage.setItem('spotify_user_id', data.id); return data.id; }
+  }catch(e){}
+  return null;
+}
+function mergeOwned(local, remote){
+  const merged = Object.assign({}, local);
+  Object.entries(remote || {}).forEach(([k, v]) => {
+    if(!merged[k] || (v.updatedAt||0) > (merged[k].updatedAt||0)) merged[k] = v;
+  });
+  return merged;
+}
+async function syncPull(){
+  const cfg = getSyncConfig();
+  if(!cfg) return null;
+  try{
+    const res = await fetch(`${cfg.url}/owned?user=${encodeURIComponent(cfg.user)}`, {
+      headers: { Authorization: 'Bearer ' + cfg.token }
+    });
+    if(!res.ok) return null;
+    const remote = await res.json();
+    const merged = mergeOwned(loadOwned(), remote || {});
+    saveOwned(merged);
+    return merged;
+  }catch(e){ return null; }
+}
+async function syncPush(owned){
+  const cfg = getSyncConfig();
+  if(!cfg) return;
+  try{
+    await fetch(`${cfg.url}/owned?user=${encodeURIComponent(cfg.user)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.token },
+      body: JSON.stringify(owned)
+    });
+  }catch(e){}
 }
 
 /* ============ COLOR ANALYSIS (for Rainbow sort & Mosaic) ============ */
@@ -743,6 +912,7 @@ function renderLibrary(){
           <button class="toggle-btn" id="fullWidthBtn">⇔ Fill screen</button>
           <button class="toggle-btn" id="collageBtn">🖼 Collage</button>
           <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
+          <button class="toggle-btn" id="syncBtn">🔗 Sync</button>
         </div>
       </div>
     </div>
@@ -770,6 +940,7 @@ function renderLibrary(){
   const fullWidthBtn = document.getElementById('fullWidthBtn');
   const collageBtn = document.getElementById('collageBtn');
   const randomBtn = document.getElementById('randomBtn');
+  const syncBtn = document.getElementById('syncBtn');
   const grid = document.getElementById('grid');
 
   const muPanel = document.getElementById('muPanel');
@@ -785,12 +956,54 @@ function renderLibrary(){
   hydrateImages(muPanel);
   hydrateChartArt(muFlat);
 
+  // Toggling "in library" (owned) on a /mu/ cell that isn't matched in Spotify.
+  muPanel.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mu-owned-toggle');
+    if(!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const key = btn.dataset.key, artist = btn.dataset.artist, title = btn.dataset.title;
+    const nowOwned = !btn.classList.contains('active');
+    setOwned(key, artist, title, nowOwned);
+    btn.classList.toggle('active', nowOwned);
+    btn.textContent = nowOwned ? '✓' : '+';
+    btn.title = nowOwned ? 'Marked as in your library' : 'Mark as in your library';
+    const cell = btn.closest('.mu-cell');
+    if(cell) cell.classList.toggle('owned', nowOwned);
+    updateCountLine();
+  });
+
+  // Pull any cross-device "owned" marks (if sync is configured) and refresh the badges once they arrive.
+  (async () => {
+    const token = localStorage.getItem('access_token');
+    if(token) await fetchSpotifyUserId(token);
+    if(getSyncConfig()){
+      const merged = await syncPull();
+      if(merged){
+        muPanel.querySelectorAll('.mu-cell[data-key]').forEach(cell => {
+          const key = cell.dataset.key;
+          const owned = isOwned(key);
+          cell.classList.toggle('owned', owned);
+          const btn = cell.querySelector('.mu-owned-toggle');
+          if(btn){
+            btn.classList.toggle('active', owned);
+            btn.textContent = owned ? '✓' : '+';
+            btn.title = owned ? 'Marked as in your library' : 'Mark as in your library';
+          }
+        });
+        updateCountLine();
+      }
+    }
+  })();
+
   function updateCountLine(){
     if(activeView === 'library'){
       countLine.innerHTML = `<strong id="visibleCount">${currentList.length}</strong> of ${ALL_ALBUMS.length} albums`;
     } else {
       const matched = muFlat.filter(c => c.match).length;
-      countLine.innerHTML = `<strong>${matched}</strong> of ${muFlat.length} chart albums in your library`;
+      const ownedExtra = muFlat.filter(c => !c.match && isOwned(normalizeStr(c.artist) + '|' + normalizeStr(c.title))).length;
+      countLine.innerHTML = `<strong>${matched}</strong> of ${muFlat.length} chart albums in your library`
+        + (ownedExtra ? ` · <strong>${ownedExtra}</strong> more marked owned` : '');
     }
   }
 
@@ -914,6 +1127,59 @@ function renderLibrary(){
   }
   function closeModal(){
     document.getElementById('modalRoot').innerHTML = '';
+  }
+
+  function openSyncModal(){
+    const root = document.getElementById('modalRoot');
+    const cfg = getSyncConfig();
+    const savedUrl = localStorage.getItem('sync_url') || '';
+    const savedToken = localStorage.getItem('sync_token') || '';
+    root.innerHTML = `
+      <div class="collage-backdrop" id="syncBackdrop">
+        <div class="collage-card">
+          <button class="collage-close" id="syncClose">✕</button>
+          <h2>Sync "owned" marks</h2>
+          <p class="sub">Carry your /mu/ "in library" marks across devices by pointing this page at a small hosted endpoint. Leave blank to keep marks on this device only.</p>
+          <div class="sync-status ${cfg ? 'ok' : ''}" id="syncStatusLine">${cfg ? `Connected as Spotify user <strong>${cfg.user}</strong>` : 'Not connected — marks are stored on this device only.'}</div>
+          <div class="row-field">
+            <label>Sync URL</label>
+            <input type="text" id="syncUrlInput" placeholder="https://your-worker.example.workers.dev" value="${escapeHtml(savedUrl)}">
+          </div>
+          <div class="row-field">
+            <label>Sync Key</label>
+            <input type="text" id="syncTokenInput" placeholder="shared secret you set on the endpoint" value="${escapeHtml(savedToken)}">
+          </div>
+          <button class="generate-btn" id="syncSaveBtn">Save & sync now</button>
+          <button class="sync-clear-btn" id="syncClearBtn">Clear sync settings</button>
+          <div class="collage-status" id="syncModalStatus"></div>
+        </div>
+      </div>`;
+    document.getElementById('syncClose').onclick = () => root.innerHTML = '';
+    document.getElementById('syncBackdrop').addEventListener('click', (e) => {
+      if(e.target.id === 'syncBackdrop') root.innerHTML = '';
+    });
+    const statusEl = document.getElementById('syncModalStatus');
+    document.getElementById('syncSaveBtn').onclick = async () => {
+      const url = document.getElementById('syncUrlInput').value.trim();
+      const token = document.getElementById('syncTokenInput').value.trim();
+      if(!url || !token){ statusEl.textContent = 'Enter both a URL and a key.'; return; }
+      localStorage.setItem('sync_url', url);
+      localStorage.setItem('sync_token', token);
+      statusEl.textContent = 'Connecting…';
+      const accessToken = localStorage.getItem('access_token');
+      const userId = await fetchSpotifyUserId(accessToken);
+      if(!userId){ statusEl.textContent = 'Could not identify your Spotify account — try reconnecting.'; return; }
+      const merged = await syncPull();
+      if(merged === null){ statusEl.textContent = 'Could not reach that endpoint. Check the URL/key and that it allows CORS from this page.'; return; }
+      await syncPush(merged);
+      statusEl.textContent = 'Synced ✓ — reloading to refresh marks…';
+      setTimeout(() => window.location.reload(), 700);
+    };
+    document.getElementById('syncClearBtn').onclick = () => {
+      localStorage.removeItem('sync_url');
+      localStorage.removeItem('sync_token');
+      statusEl.textContent = 'Sync settings cleared. Marks will stay on this device only.';
+    };
   }
 
   function openCollageModal(){
@@ -1119,6 +1385,7 @@ function renderLibrary(){
     document.querySelectorAll('[data-wrap]').forEach(el => el.classList.toggle('full-width', fullWidth));
   });
   collageBtn.addEventListener('click', openCollageModal);
+  syncBtn.addEventListener('click', openSyncModal);
   randomBtn.addEventListener('click', () => {
     if(activeView === 'mu') openRandomModal(getMuMatchedPool());
     else openRandomModal();
