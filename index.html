@@ -33,7 +33,12 @@
 
   a{color:inherit;}
 
-  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;transition:max-width .2s ease;}
+  .wrap.full-width{max-width:none;}
+
+  .col-control{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .col-control input[type="range"]{width:90px;accent-color:var(--accent);}
+  .col-control .col-val{min-width:16px;text-align:center;color:var(--ink);}
 
   /* ---------- Header ---------- */
   header{padding:56px 0 28px;border-bottom:1px solid var(--line);}
@@ -302,14 +307,14 @@ function renderLibrary(){
 
   app.innerHTML = `
     <header>
-      <div class="wrap">
+      <div class="wrap" data-wrap>
         <p class="eyebrow">Your Spotify Library</p>
         <h1>Collection</h1>
         <p class="count-line"><strong id="visibleCount">${ALL_ALBUMS.length}</strong> of ${ALL_ALBUMS.length} albums</p>
       </div>
     </header>
     <div class="controls">
-      <div class="wrap" style="display:flex;gap:14px;flex-wrap:wrap;width:100%;">
+      <div class="wrap" data-wrap style="display:flex;gap:14px;flex-wrap:wrap;width:100%;align-items:center;">
         <div class="search-box">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8778" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
           <input id="searchInput" type="text" placeholder="Search by artist, album, or year…">
@@ -324,11 +329,17 @@ function renderLibrary(){
         <button class="dir-btn" id="dirBtn">↓ Asc</button>
         <button class="toggle-btn" id="themeBtn">${darkOn ? '☀ Light' : '☾ Dark'}</button>
         <button class="toggle-btn" id="gaplessBtn">▦ Gapless</button>
+        <button class="toggle-btn" id="fullWidthBtn">⇔ Fill screen</button>
+        <div class="col-control">
+          <span>Per row</span>
+          <input type="range" id="colSlider" min="0" max="12" value="0">
+          <span class="col-val" id="colVal">Auto</span>
+        </div>
         <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
       </div>
     </div>
     <main>
-      <div class="wrap">
+      <div class="wrap" data-wrap>
         <div class="grid" id="grid"></div>
         <div class="empty-state" id="emptyState" style="display:none;">No albums match your search.</div>
       </div>
@@ -338,12 +349,17 @@ function renderLibrary(){
   let sortKey = 'artist';
   let ascending = true;
   let gapless = false;
+  let fullWidth = false;
+  let columns = 0; // 0 = auto
 
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
   const dirBtn = document.getElementById('dirBtn');
   const themeBtn = document.getElementById('themeBtn');
   const gaplessBtn = document.getElementById('gaplessBtn');
+  const fullWidthBtn = document.getElementById('fullWidthBtn');
+  const colSlider = document.getElementById('colSlider');
+  const colVal = document.getElementById('colVal');
   const randomBtn = document.getElementById('randomBtn');
   const grid = document.getElementById('grid');
 
@@ -395,6 +411,9 @@ function renderLibrary(){
     grid.style.display = 'grid';
     empty.style.display = 'none';
     grid.className = 'grid' + (gapless ? ' gapless' : '');
+    grid.style.gridTemplateColumns = columns > 0
+      ? `repeat(${columns}, 1fr)`
+      : 'repeat(auto-fill, minmax(190px, 1fr))';
     grid.innerHTML = list.map(a => `
       <a class="album" href="${a.url}" target="_blank" rel="noopener" title="${a.name} — ${a.artist} (${a.year})">
         <div class="cover-wrap"><img src="${a.image}" alt="${a.name}" loading="lazy"></div>
@@ -453,6 +472,18 @@ function renderLibrary(){
     gapless = !gapless;
     gaplessBtn.classList.toggle('active', gapless);
     grid.className = 'grid' + (gapless ? ' gapless' : '');
+  });
+  fullWidthBtn.addEventListener('click', () => {
+    fullWidth = !fullWidth;
+    fullWidthBtn.classList.toggle('active', fullWidth);
+    document.querySelectorAll('[data-wrap]').forEach(el => el.classList.toggle('full-width', fullWidth));
+  });
+  colSlider.addEventListener('input', () => {
+    columns = Number(colSlider.value);
+    colVal.textContent = columns === 0 ? 'Auto' : columns;
+    grid.style.gridTemplateColumns = columns > 0
+      ? `repeat(${columns}, 1fr)`
+      : 'repeat(auto-fill, minmax(190px, 1fr))';
   });
   randomBtn.addEventListener('click', openRandomModal);
 
