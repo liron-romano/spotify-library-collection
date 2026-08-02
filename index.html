@@ -70,7 +70,7 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;transition:gap .2s ease;}
   .album{cursor:pointer;text-decoration:none;display:block;}
   .cover-wrap{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .2s ease, box-shadow .2s ease, border-radius .2s ease;}
-  .album:hover .cover-wrap{transform:translateY(-3px);box-shadow:0 14px 24px -10px var(--shadow);}
+  .album:hover .cover-wrap{transform:translateY(-3px);box-shadow:0 10px 18px -8px var(--shadow);}
   .cover-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
   .meta{margin-top:10px;}
   .meta .title{font-size:14px;font-weight:500;line-height:1.3;margin:0 0 2px;color:var(--ink);}
@@ -113,7 +113,7 @@
   .mu-tile{display:flex;flex-direction:column;gap:5px;min-width:0;}
   .mu-cell{position:relative;aspect-ratio:1/1;border-radius:5px;overflow:hidden;background:var(--line);display:block;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;}
   .mu-cell img{width:100%;height:100%;object-fit:cover;display:block;}
-  a.mu-cell:hover{transform:translateY(-2px);box-shadow:0 10px 18px -8px var(--shadow);}
+  .mu-cell:hover{transform:translateY(-2px);box-shadow:0 10px 18px -8px var(--shadow);}
   .mu-cell.grayed{filter:grayscale(1);opacity:.4;transition:filter .18s ease, opacity .18s ease, transform .15s ease, box-shadow .15s ease;}
   div.mu-cell.grayed{cursor:default;}
   /* Hover reveals the album in full color, even when it's not in the Spotify library */
@@ -135,7 +135,7 @@
   .mu-owned-toggle.active{opacity:1;background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
   /* Marked-owned cells stay in full color permanently, with a subtle ring to distinguish them from a real Spotify match */
   .mu-cell.grayed.owned{filter:none;opacity:1;box-shadow:inset 0 0 0 2px var(--accent);}
-  .mu-cell.grayed.owned:hover{box-shadow:inset 0 0 0 2px var(--accent);}
+  .mu-cell.grayed.owned:hover{box-shadow:inset 0 0 0 2px var(--accent), 0 10px 18px -8px var(--shadow);}
 
   /* "Fix wrong artwork" button — bottom-left, opposite the owned toggle */
   .mu-art-edit-toggle{position:absolute;bottom:3px;left:3px;width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:10px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s ease, transform .1s ease;z-index:2;}
@@ -143,8 +143,9 @@
   .mu-art-edit-toggle:hover{transform:scale(1.15);}
   /* Manually-corrected artwork gets a blue ring instead of the accent-colored "owned" ring */
   .mu-cell.grayed.override{box-shadow:inset 0 0 0 2px #3f8fe0;}
-  .mu-cell.grayed.override:hover{box-shadow:inset 0 0 0 2px #3f8fe0;}
+  .mu-cell.grayed.override:hover{box-shadow:inset 0 0 0 2px #3f8fe0, 0 10px 18px -8px var(--shadow);}
   .mu-cell.grayed.override.owned{box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 0 4px #3f8fe0;}
+  .mu-cell.grayed.override.owned:hover{box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 0 4px #3f8fe0, 0 10px 18px -8px var(--shadow);}
   /* No hover on touch devices — tapping a cell reveals these instead (see the JS
      tap-to-reveal handler), so the first tap acts like a mouse hover and the second
      tap follows through, same as hover-then-click on desktop. */
