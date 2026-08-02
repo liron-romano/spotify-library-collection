@@ -494,6 +494,163 @@ const MU_SECTIONS = {
   ]
 };
 
+const MU_CLASSICS_SECTIONS = {
+  A: [
+    ["The Velvet Underground","Loaded"],
+    ["The Velvet Underground","The Velvet Underground"],
+    ["The Velvet Underground","White Light/White Heat"],
+    ["Paul McCartney","Ram"],
+    ["The Doors","The Doors"],
+    ["Tom Waits","Rain Dogs"],
+    ["The Rolling Stones","Exile on Main St."],
+    ["The Beatles","Revolver"],
+    ["The Beatles","Abbey Road"],
+    ["The Beatles","Sgt. Pepper's Lonely Hearts Club Band"],
+    ["Love","Forever Changes"],
+    ["Leonard Cohen","Songs of Leonard Cohen"]
+  ],
+  B: [
+    ["The Kinks","The Kinks Are the Village Green Preservation Society"],
+    ["Yes","Close to the Edge"],
+    ["Marvin Gaye","What's Going On"],
+    ["Tim Buckley","Lorca"],
+    ["Tim Buckley","Starsailor"],
+    ["Tears for Fears","Songs from the Big Chair"],
+    ["The United States of America","The United States of America"],
+    ["Pink Floyd","The Piper at the Gates of Dawn"],
+    ["Pink Floyd","The Dark Side of The Moon"],
+    ["Pink Floyd","Wish You Were Here"],
+    ["Wire","Pink Flag"],
+    ["The Beach Boys","Surf's Up"]
+  ],
+  C: [
+    ["Talking Heads","Fear of Music"],
+    ["Joy Division","Unknown Pleasures"],
+    ["Joy Division","Closer"],
+    ["New Order","Power, Corruption & Lies"],
+    ["The Gun Club","Fire of Love"],
+    ["Lou Reed","Transformer"],
+    ["Iggy Pop","Lust For Life"],
+    ["The Stooges","Fun House"],
+    ["Swans","Filth"],
+    ["Swans","Children of God"],
+    ["Dinosaur Jr.","You're Living All Over Me"],
+    ["Einstürzende Neubauten","Halber Mensch"]
+  ],
+  D: [
+    ["Foetus","Nail"],
+    ["The Cure","Disintegration"],
+    ["Jefferson Airplane","Volunteers"],
+    ["Neil Young","After the Gold Rush"],
+    ["Pere Ubu","The Modern Dance"],
+    ["The Pop Group","Y"],
+    ["Gang of Four","Entertainment!"],
+    ["Lizzy Mercier Descloux","Press Color"],
+    ["Sonic Youth","Daydream Nation"],
+    ["Sonic Youth","Sister"],
+    ["Sonic Youth","EVOL"],
+    ["Various Artists","No New York"]
+  ],
+  E: [
+    ["King Crimson","Discipline"],
+    ["King Crimson","Larks' Tongues in Aspic"],
+    ["King Crimson","Red"],
+    ["This Heat","Deceit"],
+    ["David Bowie","Low"],
+    ["David Bowie","The Rise and Fall of Ziggy Stardust and the Spiders..."],
+    ["Jackson C. Frank","Jackson C. Frank"],
+    ["The Smiths","The Queen Is Dead"],
+    ["John Fahey","Fare Forward Voyagers (Soldier's Choice)"],
+    ["Comus","First Utterance"],
+    ["Exuma","Exuma"],
+    ["Os Mutantes","Os Mutantes"]
+  ],
+  F: [
+    ["Devo","Q: Are We Not Men? A: We Are Devo!"],
+    ["Coil","Horse Rotorvator"],
+    ["Throbbing Gristle","20 Jazz Funk Greats"],
+    ["Henry Cow","In Praise of Learning"],
+    ["Talk Talk","Spirit of Eden"],
+    ["Soft Machine","Third"],
+    ["MC5","Kick Out the Jams"],
+    ["Captain Beefheart & His Magic Band","Safe As Milk"],
+    ["The Residents","Not Available"],
+    ["Can","Tago Mago"],
+    ["Can","Future Days"],
+    ["Daniel Johnston","Hi, How Are You"]
+  ],
+  G: [
+    ["Black Flag","Damaged"],
+    ["Minor Threat","Complete Discography"],
+    ["Bad Brains","Bad Brains"],
+    ["R.E.M.","Murmur"],
+    ["Madness","One Step Beyond"],
+    ["Cocteau Twins","Treasure"],
+    ["Hüsker Dü","Zen Arcade"],
+    ["Minutemen","Double Nickels on the Dime"],
+    ["Led Zeppelin","Led Zeppelin IV"],
+    ["My Bloody Valentine","You Made Me Realise"],
+    ["My Bloody Valentine","Isn't Anything"],
+    ["Steely Dan","Aja"]
+  ],
+  H: [
+    ["Glenn Branca","The Ascension"],
+    ["Brian Eno","Another Green World"],
+    ["Nick Cave & The Bad Seeds","Tender Prey"],
+    ["Television","Marquee Moon"],
+    ["Neu!","Neu!"],
+    ["Popol Vuh","Hosianna Mantra"],
+    ["Funkadelic","Maggot Brain"],
+    ["The Who","Who's Next"],
+    ["Faust","Faust"],
+    ["Robert Wyatt","Rock Bottom"],
+    ["Kate Bush","Hounds of Love"],
+    ["Butthole Surfers","Psychic... Powerless... Another Man's Sac"]
+  ],
+  I: [
+    ["Bob Dylan","Blonde on Blonde"],
+    ["Bob Dylan","Blood on the Tracks"],
+    ["Galaxie 500","On Fire"],
+    ["Violent Femmes","Violent Femmes"],
+    ["Amon Düül II","Yeti"],
+    ["The Zombies","Odessey and Oracle"],
+    ["Prince","Purple Rain"],
+    ["Fleetwood Mac","Rumours"],
+    ["The Jesus and Mary Chain","Psychocandy"],
+    ["Public Image Ltd.","Second Edition"],
+    ["The Red Krayola","The Parable of Arable Land"],
+    ["Suicide","Suicide"]
+  ],
+  J: [
+    ["Syd Barrett","The Madcap Laughs"],
+    ["Frank Zappa","Hot Rats"],
+    ["Frank Zappa","Freak Out!"],
+    ["Jimi Hendrix","Are You Experienced?"],
+    ["Pixies","Doolittle"],
+    ["Pixies","Surfer Rosa"],
+    ["Curtis Mayfield","Superfly"],
+    ["The Replacements","Let It Be"],
+    ["Big Black","Songs About Fucking"],
+    ["Beat Happening","Beat Happening"],
+    ["Genesis","Selling England by the Pound"],
+    ["Elvis Presley","Elvis Presley"]
+  ],
+  K: [
+    ["Mission of Burma","Vs."],
+    ["Dead Kennedys","Fresh Fruit for Rotting Vegetables"],
+    ["Chrome","Half Machine Lip Moves"],
+    ["The Stone Roses","The Stone Roses"],
+    ["Bruce Springsteen","Born to Run"],
+    ["Nick Drake","Pink Moon"],
+    ["Nick Drake","Bryter Layter"],
+    ["Van Morrison","Astral Weeks"],
+    ["The Clash","London Calling"],
+    ["Nico","Desertshore"],
+    ["Grateful Dead","American Beauty"],
+    ["Van Dyke Parks","Song Cycle"]
+  ]
+};
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
@@ -526,7 +683,8 @@ function computeMuCells(library){
   const mapEntry = (idPrefix) => ([artist, title], i) => ({ id: `${idPrefix}-${i}`, artist, title, match: findLibraryMatch(artist, title, library) });
   return {
     core: MU_CORE.map(mapEntry('core')),
-    sections: Object.fromEntries(Object.entries(MU_SECTIONS).map(([k, v]) => [k, v.map(mapEntry(k))]))
+    sections: Object.fromEntries(Object.entries(MU_SECTIONS).map(([k, v]) => [k, v.map(mapEntry(k))])),
+    classicsSections: Object.fromEntries(Object.entries(MU_CLASSICS_SECTIONS).map(([k, v]) => [k, v.map(mapEntry('classics-' + k))]))
   };
 }
 function muCellHtml(cell){
@@ -565,6 +723,13 @@ function buildMuHtml(cells){
     <div class="mu-scroll"><div id="muSections">`;
   Object.keys(cells.sections).forEach(letter => {
     html += `<div class="mu-section-grid"><div class="mu-row-label">${letter}</div>${cells.sections[letter].map(muTileHtml).join('')}</div>`;
+  });
+  html += `<div class="mu-col-labels"><span></span>${Array.from({length:12}, (_,i) => `<span>${i+1}</span>`).join('')}</div>`;
+  html += `</div></div>`;
+  html += `<div class="mu-heading">Classics</div>
+    <div class="mu-scroll"><div id="muClassicsSections">`;
+  Object.keys(cells.classicsSections).forEach(letter => {
+    html += `<div class="mu-section-grid"><div class="mu-row-label">${letter}</div>${cells.classicsSections[letter].map(muTileHtml).join('')}</div>`;
   });
   html += `<div class="mu-col-labels"><span></span>${Array.from({length:12}, (_,i) => `<span>${i+1}</span>`).join('')}</div>`;
   html += `</div></div>`;
@@ -1102,7 +1267,7 @@ function renderLibrary(){
   let activeView = 'library';
 
   const muCells = computeMuCells(ALL_ALBUMS);
-  const muFlat = [...muCells.core, ...Object.values(muCells.sections).flat()];
+  const muFlat = [...muCells.core, ...Object.values(muCells.sections).flat(), ...Object.values(muCells.classicsSections).flat()];
   muPanel.innerHTML = buildMuHtml(muCells);
   hydrateImages(muPanel);
   hydrateChartArt(muFlat);
