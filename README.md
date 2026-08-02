@@ -1,83 +1,58 @@
-# Deploying the "owned albums" sync backend
+# Collection — module map
 
-The app works fully without this — "mark as in library" is saved to
-`localStorage` on whichever device/browser you're using. This backend is
-only needed if you want those marks to follow you across devices.
+Split out of the original single-file `index.html` into small, single-purpose ES modules.
+Nothing about the app's behavior changed — this is a structural refactor only.
 
-It's a single Cloudflare Worker (free tier is plenty for one user) backed
-by Workers KV, a tiny key-value store. No database to manage, no server to
-patch, no monthly bill for personal use.
+## Running it
 
-## 1. Prerequisites
+Because this now uses native ES modules (`<script type="module">`), it must be served
+over HTTP(S), not opened directly as a `file://` URL (browsers block module imports from
+`file://` for security reasons). Any static file server works, e.g.:
 
-- A free Cloudflare account (https://dash.cloudflare.com/sign-up)
-- Node.js installed locally
-- The two files in this folder: `worker.js` and `wrangler.toml`
-
-## 2. Install the CLI and log in
-
-```bash
-npm install -g wrangler
-wrangler login
+```
+npx serve .
+# or
+python3 -m http.server
 ```
 
-## 3. Create the KV namespace
+Put your `config.json` (with `{ "clientId": "..." }`) next to `index.html`, same as before.
 
-```bash
-cd sync-worker
-wrangler kv namespace create OWNED_KV
+## Layout
+
+```
+index.html              Shell only: <link> to css, tiny inline pre-paint theme script, <script type="module" src="js/main.js">
+css/
+  styles.css             All styles (unchanged from the original <style> block)
+js/
+  main.js                 Entry point: bootstraps config, OAuth callback, initial fetch, first render
+  config.js                Runtime config.json loading + OAuth constants
+  theme.js                  Dark/light theme apply + system-preference listener
+  auth.js                    Spotify PKCE OAuth flow (start + code exchange)
+  spotify-api.js              Spotify Web API calls (saved albums, album search, user id)
+  utils.js                     escapeHtml / normalizeStr / stripEdition string helpers
+  state.js                      Shared ALL_ALBUMS app state (live ES module binding)
+  mu-data.js                     /mu/ chart data: MU_CORE, MU_SECTIONS, MU_CLASSICS_SECTIONS
+  mu-render.js                    Matches chart entries to your library + builds /mu/ grid HTML
+  image-hydration.js               Placeholder image swap-in via the Cache API
+  chart-art.js                      Cover-art lookup for /mu/ (Spotify → iTunes → MusicBrainz) + DOM patching
+  persistence.js                     "Owned" marks, manual artwork overrides, chart-art cache, cross-device sync
+  color.js                            Cover color analysis for Rainbow sort & Mosaic
+  image-cache.js                       Canvas image loading/drawing helpers for the collage generator
+  render-login.js                      Login + loading screens
+  render-library.js                    Main library/mu view: search, sort, view switching, event wiring
+  modals/
+    random-modal.js                     "Surprise me" modal
+    sync-modal.js                       Sync settings modal
+    art-edit-modal.js                   "Fix cover art" modal
+    collage-modal.js                    Collage/mosaic generator modal
 ```
 
-This prints an `id`. Copy it into `wrangler.toml`, replacing
-`REPLACE_WITH_YOUR_KV_NAMESPACE_ID`.
+## Why this split
 
-## 4. Set your secret sync key
-
-Pick any long random string — this is the "Sync Key" you'll paste into the
-app's Sync settings modal later. Don't reuse a password.
-
-```bash
-wrangler secret put SYNC_TOKEN
-# paste your chosen secret when prompted
-```
-
-## 5. Deploy
-
-```bash
-wrangler deploy
-```
-
-Wrangler prints a URL like `https://mu-owned-sync.<your-subdomain>.workers.dev`.
-That's your **Sync URL**.
-
-## 6. Connect the app
-
-In the app, click **🔗 Sync**, and enter:
-- **Sync URL**: the workers.dev URL from step 5
-- **Sync Key**: the secret you set in step 4
-
-Click "Save & sync now". From then on, marking an album as owned on one
-device will show up on any other device/browser where you've entered the
-same Sync URL and Key while logged into the same Spotify account.
-
-## Notes & tradeoffs
-
-- **Security model**: this is a shared-secret bearer token, not per-user
-  login. Anyone with the Sync URL *and* the key can read/write the store.
-  Fine for a personal tool only you and your devices use; don't publish
-  the key. For stricter security you'd want per-user OAuth instead of a
-  static secret — more setup than is worth it for a single-user app.
-- **CORS**: `worker.js` currently allows any origin (`Access-Control-Allow-Origin: "*"`).
-  Once you know the final URL you're hosting `index.html` at, change
-  `ALLOWED_ORIGIN` in `worker.js` to that exact origin and redeploy, so only
-  your copy of the page can talk to your worker.
-- **Free tier limits**: Workers free plan allows 100,000 requests/day and
-  KV free tier allows 100,000 reads + 1,000 writes/day — orders of
-  magnitude more than a personal collection page will ever use.
-- **Alternative if you'd rather avoid writing/deploying any server code**:
-  Supabase (https://supabase.com) gives you a hosted Postgres database with
-  a REST API out of the box. You'd create one table (`owned_albums` with
-  columns `user_id`, `data jsonb`, `updated_at`), enable row-level security
-  scoped to `user_id`, and call it directly from the browser with the
-  Supabase anon key — no worker.js needed at all, just SQL run once in
-  their dashboard. Firebase Firestore is a similar no-server option.
+- Each file has one job (data, one API, one piece of persistence, one modal, etc.),
+  so changes are easy to locate and touch in isolation.
+- `state.js` holds the one piece of truly shared mutable data (the fetched album list)
+  as a live-bound export, so it doesn't need to be threaded through every function call.
+- `persistence.js` keeps "owned" marks + overrides + cross-device sync together deliberately:
+  writes to either store schedule a sync push, and a sync pull writes back into both stores,
+  so splitting them further would just create a circular import between two files.

@@ -1,0 +1,231 @@
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --paper:#F7F6F3;
+    --ink:#161615;
+    --muted:#8C8A85;
+    --line:#E3E1DC;
+    --accent:#161615;
+    --accent-fg:#FFFFFF;
+    --accent-soft:#ECEBE7;
+    --card:#FFFFFF;
+    --shadow:rgba(20,20,15,.18);
+  }
+
+  [data-theme="dark"]{
+    --paper:#121212;
+    --ink:#F1F0EC;
+    --muted:#8F8D89;
+    --line:#272725;
+    --accent:#F1F0EC;
+    --accent-fg:#121212;
+    --accent-soft:#1E1E1C;
+    --card:#1A1A18;
+    --shadow:rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;transition:background .2s ease, color .2s ease;}
+  ::selection{background:var(--accent-soft);color:var(--accent);}
+
+  a{color:inherit;}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;transition:max-width .2s ease;}
+  .wrap.full-width{max-width:none;}
+
+  /* ---------- Header ---------- */
+  header{padding:56px 0 28px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+  h1{font-family:'Fraunces',serif;font-weight:500;font-size:44px;line-height:1;margin:0 0 6px;letter-spacing:-.01em;}
+  .count-line{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
+  .count-line strong{color:var(--ink);font-weight:500;}
+
+  /* ---------- Controls ---------- */
+  .controls{position:sticky;top:0;background:var(--paper);z-index:10;padding:18px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .search-box{position:relative;width:100%;}
+  .search-box input{width:100%;padding:11px 14px 11px 36px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:'Inter';font-size:14px;color:var(--ink);outline:none;transition:border-color .15s;}
+  .search-box input:focus{border-color:var(--accent);}
+  .search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45;}
+  select{padding:11px 34px 11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:'Inter';font-size:14px;color:var(--ink);outline:none;cursor:pointer;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A8778' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;}
+  select:focus{border-color:var(--accent);}
+  .dir-btn{padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
+  .dir-btn:hover{color:var(--ink);border-color:var(--accent);}
+
+  .toggle-btn{padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+  .toggle-btn:hover{color:var(--ink);border-color:var(--accent);}
+  .toggle-btn.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+  .toggle-btn.rainbow.active{background:linear-gradient(90deg,#e14b4b,#e2a63d,#dfd23c,#4bbf6b,#3f8fe0,#8a5fe0);color:#fff;border-color:transparent;}
+
+  /* ---------- Grid ---------- */
+  main{padding:36px 0 90px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;transition:gap .2s ease;}
+  .album{cursor:pointer;text-decoration:none;display:block;}
+  .cover-wrap{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .2s ease, box-shadow .2s ease, border-radius .2s ease;}
+  .album:hover .cover-wrap{transform:translateY(-3px);box-shadow:0 10px 18px -8px var(--shadow);}
+  .cover-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .meta{margin-top:10px;}
+  .meta .title{font-size:14px;font-weight:500;line-height:1.3;margin:0 0 2px;color:var(--ink);}
+  .meta .artist{font-size:13px;color:var(--muted);margin:0;}
+  .meta .year{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;}
+
+  /* Gapless mode: wall-to-wall covers, no meta, no radius */
+  .grid.gapless{gap:0;}
+  .grid.gapless .cover-wrap{border-radius:0;box-shadow:none;}
+  .grid.gapless .album:hover .cover-wrap{transform:none;box-shadow:inset 0 0 0 1000px rgba(0,0,0,.18);}
+  .grid.gapless .meta{display:none;}
+
+  .empty-state{text-align:center;padding:100px 20px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:14px;}
+
+  /* ---------- View tabs ---------- */
+  .view-tabs{display:flex;gap:8px;width:100%;margin-bottom:2px;}
+  .view-tab{padding:9px 16px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+  .view-tab:hover{color:var(--ink);}
+  .view-tab.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+
+  /* ---------- MU tab ---------- */
+  .mu-heading{font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:38px 0 14px;}
+  .mu-heading:first-child{margin-top:0;}
+  .mu-core-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;align-items:start;}
+  .mu-core-grid.gapless{gap:0;}
+  .mu-scroll{overflow-x:auto;padding-bottom:6px;}
+  .mu-section-grid{display:grid;grid-template-columns:26px repeat(12,minmax(62px,1fr));gap:8px;margin-bottom:8px;min-width:820px;align-items:start;}
+  .mu-section-grid.gapless{gap:0;}
+  .mu-row-label{display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);align-self:stretch;}
+  .mu-col-labels{display:grid;grid-template-columns:26px repeat(12,minmax(62px,1fr));gap:8px;margin-top:6px;min-width:820px;}
+  /* Outdent the row-letter/corner column so the album grid lines up with the heading above it.
+     Desktop-only: on mobile the side padding is too narrow for a 34px outdent to fit without
+     pushing the page wider than the viewport. */
+  @media (min-width:641px){
+    .mu-scroll{margin-left:-34px;padding-left:34px;}
+    .mu-section-grid{margin-left:-34px;}
+    .mu-col-labels{margin-left:-34px;}
+  }
+  .mu-col-labels span{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+  .mu-tile{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .mu-cell{position:relative;aspect-ratio:1/1;border-radius:5px;overflow:hidden;background:var(--line);display:block;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;}
+  .mu-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  .mu-cell:hover{transform:translateY(-2px);box-shadow:0 10px 18px -8px var(--shadow);}
+  .mu-cell.grayed{filter:grayscale(1);opacity:.4;transition:filter .18s ease, opacity .18s ease, transform .15s ease, box-shadow .15s ease;}
+  div.mu-cell.grayed{cursor:default;}
+  /* Hover reveals the album in full color, even when it's not in the Spotify library */
+  .mu-cell.grayed:hover{filter:none;opacity:1;}
+  .mu-cell.dimmed{opacity:.08 !important;pointer-events:none;}
+  .mu-tile.dimmed{opacity:.08 !important;pointer-events:none;}
+  .mu-cell .fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:8.5px;line-height:1.25;color:var(--muted);text-align:center;padding:4px;}
+  .mu-core-grid.gapless .mu-cell, .mu-section-grid.gapless .mu-cell{border-radius:0;}
+  .mu-cell-caption{min-width:0;}
+  .mu-cell-title{font-size:10px;font-weight:500;line-height:1.25;color:var(--ink);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .mu-cell-artist{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+  .mu-core-grid.gapless .mu-cell-caption, .mu-section-grid.gapless .mu-cell-caption{display:none;}
+  .mu-count-note{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:20px;}
+
+  /* ---------- Owned (marked as "in your library") toggle on /mu/ cells ---------- */
+  .mu-owned-toggle{position:absolute;top:3px;right:3px;width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s ease, transform .1s ease, background .15s ease, color .15s ease;z-index:2;}
+  .mu-cell:hover .mu-owned-toggle{opacity:1;}
+  .mu-owned-toggle:hover{transform:scale(1.15);}
+  .mu-owned-toggle.active{opacity:1;background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+  /* Marked-owned cells stay in full color permanently, with a subtle ring to distinguish them from a real Spotify match */
+  .mu-cell.grayed.owned{filter:none;opacity:1;box-shadow:inset 0 0 0 2px var(--accent);}
+  .mu-cell.grayed.owned:hover{box-shadow:inset 0 0 0 2px var(--accent), 0 10px 18px -8px var(--shadow);}
+
+  /* "Fix wrong artwork" button — bottom-left, opposite the owned toggle */
+  .mu-art-edit-toggle{position:absolute;bottom:3px;left:3px;width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:10px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s ease, transform .1s ease;z-index:2;}
+  .mu-cell:hover .mu-art-edit-toggle{opacity:1;}
+  .mu-art-edit-toggle:hover{transform:scale(1.15);}
+  /* Manually-corrected artwork gets a blue ring instead of the accent-colored "owned" ring */
+  .mu-cell.grayed.override{box-shadow:inset 0 0 0 2px #3f8fe0;}
+  .mu-cell.grayed.override:hover{box-shadow:inset 0 0 0 2px #3f8fe0, 0 10px 18px -8px var(--shadow);}
+  .mu-cell.grayed.override.owned{box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 0 4px #3f8fe0;}
+  .mu-cell.grayed.override.owned:hover{box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 0 4px #3f8fe0, 0 10px 18px -8px var(--shadow);}
+  /* No hover on touch devices — tapping a cell reveals these instead (see the JS
+     tap-to-reveal handler), so the first tap acts like a mouse hover and the second
+     tap follows through, same as hover-then-click on desktop. */
+  .mu-cell.touch-active .mu-owned-toggle, .mu-cell.touch-active .mu-art-edit-toggle{opacity:1;}
+
+  /* ---------- Sync settings modal ---------- */
+  .sync-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:-10px 0 18px;line-height:1.6;}
+  .sync-status.ok{color:#3f8f5f;}
+  .sync-clear-btn{width:100%;padding:11px;border-radius:7px;background:var(--paper);color:var(--muted);border:1px solid var(--line);font-family:'Inter';font-size:13px;cursor:pointer;margin-top:10px;}
+  .sync-clear-btn:hover{border-color:var(--accent);color:var(--ink);}
+
+  /* ---------- Random pick modal ---------- */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(10,10,8,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;}
+  .modal-card{position:relative;background:var(--card);border-radius:14px;max-width:380px;width:100%;padding:32px;text-align:center;box-shadow:0 24px 60px -20px rgba(0,0,0,.4);}
+  .modal-card img{width:220px;height:220px;object-fit:cover;border-radius:8px;box-shadow:0 10px 30px -10px rgba(0,0,0,.35);margin-bottom:20px;}
+  .modal-card p.eyebrow{margin:0 0 12px;}
+  .modal-card .title{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin:0 0 4px;}
+  .modal-card .artist{font-size:14px;color:var(--muted);margin:0 0 2px;}
+  .modal-card .year{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:0 0 22px;}
+  .modal-actions{display:flex;gap:10px;}
+  .modal-actions a, .modal-actions button{flex:1;padding:11px;border-radius:7px;font-family:'Inter';font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}
+  .modal-actions .open-link{background:var(--accent);color:var(--accent-fg);border:none;}
+  .modal-actions .again-btn{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
+  .modal-actions .again-btn:hover{border-color:var(--accent);}
+  .modal-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
+
+  /* ---------- Collage generator ---------- */
+  .collage-backdrop{position:fixed;inset:0;background:rgba(10,10,8,.6);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:40px 24px;overflow-y:auto;}
+  .collage-card{position:relative;background:var(--card);border-radius:16px;max-width:640px;width:100%;padding:32px;box-shadow:0 24px 60px -20px rgba(0,0,0,.4);}
+  .collage-card h2{font-family:'Fraunces',serif;font-weight:500;font-size:24px;margin:0 0 4px;}
+  .collage-card .sub{font-size:13px;color:var(--muted);margin:0 0 22px;}
+  .collage-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
+  .tab-row{display:flex;gap:8px;margin-bottom:22px;}
+  .tab-btn{flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .row-field{margin-bottom:16px;}
+  .row-field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;}
+  .row-field input[type="range"]{width:100%;accent-color:var(--accent);}
+  .row-field select, .row-field input[type="file"]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--paper);font-family:'Inter';font-size:13px;color:var(--ink);}
+  .generate-btn{width:100%;padding:12px;border:none;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-weight:500;font-size:14px;cursor:pointer;margin-top:4px;}
+  .generate-btn:disabled{opacity:.5;cursor:default;}
+  .collage-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);text-align:center;margin-top:16px;min-height:16px;}
+  .collage-output{margin-top:18px;text-align:center;}
+  .collage-output img{max-width:100%;border-radius:8px;box-shadow:0 10px 30px -10px var(--shadow);}
+  .collage-output .dl-btn{display:inline-block;margin-top:14px;padding:10px 18px;border-radius:7px;background:var(--paper);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;font-family:'Inter';font-weight:500;}
+  .collage-output .dl-btn:hover{border-color:var(--accent);}
+
+  /* ---------- Login screen ---------- */
+  .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{max-width:420px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:40px 36px;}
+  .login-card h1{font-size:28px;margin-bottom:8px;}
+  .login-card p{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 24px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;}
+  .field input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter';font-size:14px;background:var(--paper);outline:none;}
+  .field input:focus{border-color:var(--accent);}
+  .connect-btn{width:100%;padding:13px;border:none;border-radius:7px;background:var(--accent);color:var(--accent-fg);font-family:'Inter';font-weight:500;font-size:14px;cursor:pointer;margin-top:6px;}
+  .connect-btn:hover{opacity:.92;}
+  .hint{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;}
+  .hint code{background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .error-msg{background:#FBEAE8;color:#9B3B2F;padding:10px 12px;border-radius:7px;font-size:13px;margin-bottom:16px;}
+
+  .loading{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:13px;}
+
+  @media (max-width:640px){
+    html, body{overflow-x:hidden;}
+    .wrap{padding:0 18px;}
+    header{padding:36px 0 20px;}
+    h1{font-size:30px;}
+    .controls{padding:14px 0;}
+
+    /* Search stays full-width; sort/toggle buttons become a compact swipeable strip
+       instead of wrapping into a tall stack that pushes the grid down. */
+    .control-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;}
+    .control-row > *{flex:0 0 auto;}
+    .control-row select, .control-row .dir-btn, .control-row .toggle-btn{padding:9px 12px;font-size:12.5px;}
+
+    .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:16px 12px;}
+    .mu-core-grid{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;}
+    .mu-section-grid, .mu-col-labels{grid-template-columns:20px repeat(12,minmax(46px,1fr));gap:6px;min-width:660px;}
+    .mu-cell-title{font-size:9px;}
+    .mu-cell-artist{font-size:8px;}
+
+    .modal-card, .collage-card, .login-card{padding:24px 20px;}
+    .modal-card img{width:min(220px,55vw);height:min(220px,55vw);}
+    .collage-backdrop, .modal-backdrop{padding:16px;}
+  }
