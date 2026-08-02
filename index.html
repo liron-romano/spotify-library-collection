@@ -145,10 +145,10 @@
   .mu-cell.grayed.override{box-shadow:inset 0 0 0 2px #3f8fe0;}
   .mu-cell.grayed.override:hover{box-shadow:inset 0 0 0 2px #3f8fe0;}
   .mu-cell.grayed.override.owned{box-shadow:inset 0 0 0 2px var(--accent), inset 0 0 0 4px #3f8fe0;}
-  /* No hover on touch devices — these controls need to be reachable by tap, not just hover-revealed */
-  @media (hover:none){
-    .mu-owned-toggle, .mu-art-edit-toggle{opacity:1;}
-  }
+  /* No hover on touch devices — tapping a cell reveals these instead (see the JS
+     tap-to-reveal handler), so the first tap acts like a mouse hover and the second
+     tap follows through, same as hover-then-click on desktop. */
+  .mu-cell.touch-active .mu-owned-toggle, .mu-cell.touch-active .mu-art-edit-toggle{opacity:1;}
 
   /* ---------- Sync settings modal ---------- */
   .sync-status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:-10px 0 18px;line-height:1.6;}
@@ -1107,6 +1107,8 @@ function renderLibrary(){
   hydrateChartArt(muFlat);
 
   // Toggling "in library" (owned), or opening the artwork-fix modal, on a /mu/ cell.
+  const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+  let touchActiveCell = null;
   muPanel.addEventListener('click', (e) => {
     const ownedBtn = e.target.closest('.mu-owned-toggle');
     if(ownedBtn){
@@ -1128,8 +1130,31 @@ function renderLibrary(){
       e.preventDefault();
       e.stopPropagation();
       openArtEditModal(editBtn.dataset.key, editBtn.dataset.artist, editBtn.dataset.title, editBtn.dataset.elId);
+      return;
+    }
+    // Tap-to-reveal: only cells with owned/edit buttons (the "grayed" — i.e. not a
+    // confirmed Spotify match) ones have anything to reveal. First tap shows them
+    // (like a mouse hover) and swallows the tap so it doesn't also navigate; the
+    // cell is already "revealed" on a second tap, so that one goes through normally.
+    if(isTouch){
+      const cell = e.target.closest('.mu-cell.grayed');
+      if(cell && !cell.classList.contains('touch-active')){
+        e.preventDefault();
+        if(touchActiveCell && touchActiveCell !== cell) touchActiveCell.classList.remove('touch-active');
+        cell.classList.add('touch-active');
+        touchActiveCell = cell;
+      }
     }
   });
+  if(isTouch){
+    // Tapping anywhere outside the currently revealed cell dismisses it.
+    document.addEventListener('click', (e) => {
+      if(touchActiveCell && !touchActiveCell.contains(e.target)){
+        touchActiveCell.classList.remove('touch-active');
+        touchActiveCell = null;
+      }
+    });
+  }
 
   // Pull any cross-device "owned" marks and artwork fixes (if sync is configured) and refresh once they arrive.
   (async () => {
