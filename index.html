@@ -105,7 +105,8 @@
   .mu-cell{position:relative;aspect-ratio:1/1;border-radius:5px;overflow:hidden;background:var(--line);display:block;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;}
   .mu-cell img{width:100%;height:100%;object-fit:cover;display:block;}
   a.mu-cell:hover{transform:translateY(-2px);box-shadow:0 10px 18px -8px var(--shadow);}
-  .mu-cell.grayed{filter:grayscale(1);opacity:.4;cursor:default;}
+  .mu-cell.grayed{filter:grayscale(1);opacity:.4;}
+  div.mu-cell.grayed{cursor:default;}
   .mu-cell.grayed:hover{opacity:.65;}
   .mu-cell.dimmed{opacity:.08 !important;pointer-events:none;}
   .mu-cell .fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:8.5px;line-height:1.25;color:var(--muted);text-align:center;padding:4px;}
@@ -442,21 +443,23 @@ function findLibraryMatch(chartArtist, chartAlbum, library){
   });
 }
 function computeMuCells(library){
-  const mapEntry = ([artist, title]) => ({ artist, title, match: findLibraryMatch(artist, title, library) });
+  const mapEntry = (idPrefix) => ([artist, title], i) => ({ id: `${idPrefix}-${i}`, artist, title, match: findLibraryMatch(artist, title, library) });
   return {
-    core: MU_CORE.map(mapEntry),
-    sections: Object.fromEntries(Object.entries(MU_SECTIONS).map(([k, v]) => [k, v.map(mapEntry)]))
+    core: MU_CORE.map(mapEntry('core')),
+    sections: Object.fromEntries(Object.entries(MU_SECTIONS).map(([k, v]) => [k, v.map(mapEntry(k))]))
   };
 }
 function muCellHtml(cell){
   const label = escapeHtml(`${cell.title} — ${cell.artist}`);
   const q = escapeHtml((cell.artist + ' ' + cell.title).toLowerCase());
+  const elId = 'mu-' + cell.id;
   if(cell.match){
-    return `<a class="mu-cell" href="${cell.match.url}" target="_blank" rel="noopener" title="${label}" data-q="${q}">
-      <img src="${cell.match.image}" alt="${label}" loading="lazy">
+    return `<a class="mu-cell" id="${elId}" href="${cell.match.url}" target="_blank" rel="noopener" title="${label}" data-q="${q}">
+      <img src="${PLACEHOLDER_IMG}" data-src="${cell.match.image}" alt="${label}" loading="lazy">
     </a>`;
   }
-  return `<div class="mu-cell grayed" title="${label}" data-q="${q}">
+  const key = escapeHtml(normalizeStr(cell.artist) + '|' + normalizeStr(cell.title));
+  return `<div class="mu-cell grayed" id="${elId}" title="${label}" data-q="${q}" data-key="${key}" data-artist="${escapeHtml(cell.artist)}" data-title="${escapeHtml(cell.title)}">
     <div class="fallback">${escapeHtml(cell.title)}</div>
   </div>`;
 }
@@ -471,6 +474,110 @@ function buildMuHtml(cells){
   html += `<div class="mu-col-labels"><span></span>${Array.from({length:12}, (_,i) => `<span>${i+1}</span>`).join('')}</div>`;
   html += `</div></div>`;
   return html;
+}
+
+/* ============ PERSISTENT ART CACHE (images survive refresh) ============ */
+const PLACEHOLDER_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+const ART_CACHE_NAME = 'collection-art-cache-v1';
+let artCachePromise = null;
+function getArtCache(){
+  if(!('caches' in window)) return Promise.resolve(null);
+  if(!artCachePromise) artCachePromise = caches.open(ART_CACHE_NAME).catch(() => null);
+  return artCachePromise;
+}
+async function cachedImageSrc(url){
+  if(!url) return url;
+  try{
+    const cache = await getArtCache();
+    if(!cache) return url;
+    let resp = await cache.match(url);
+    if(!resp){
+      resp = await fetch(url, { mode: 'cors' });
+      if(resp && resp.ok) await cache.put(url, resp.clone());
+      else return url;
+    }
+    const blob = await resp.blob();
+    return URL.createObjectURL(blob);
+  }catch(e){
+    return url;
+  }
+}
+function hydrateSingleImage(img){
+  const url = img.dataset.src;
+  if(!url) return;
+  cachedImageSrc(url).then(src => {
+    img.src = src;
+    img.removeAttribute('data-src');
+  }).catch(() => { img.src = url; });
+}
+function hydrateImages(root){
+  root.querySelectorAll('img[data-src]').forEach(hydrateSingleImage);
+}
+
+/* ============ CHART ART LOOKUP (cover art for /mu/ albums not in your library) ============ */
+const CHART_ART_CACHE_KEY = 'mu_chart_art_cache_v1';
+function loadChartArtCache(){
+  try{ return JSON.parse(localStorage.getItem(CHART_ART_CACHE_KEY) || '{}'); }catch(e){ return {}; }
+}
+function saveChartArtCache(cache){
+  try{ localStorage.setItem(CHART_ART_CACHE_KEY, JSON.stringify(cache)); }catch(e){}
+}
+async function searchSpotifyAlbum(token, artist, title){
+  const q = encodeURIComponent(`${artist} ${title}`);
+  const res = await fetch(`https://api.spotify.com/v1/search?q=${q}&type=album&limit=1`, {
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  if(!res.ok) return null;
+  const data = await res.json();
+  const item = data.albums && data.albums.items && data.albums.items[0];
+  if(!item) return null;
+  return {
+    image: (item.images[1] || item.images[0] || {}).url || '',
+    url: item.external_urls.spotify
+  };
+}
+function applyChartArt(elId, label, q, result){
+  if(!result || !result.image) return;
+  const el = document.getElementById(elId);
+  if(!el) return;
+  el.outerHTML = `<a class="mu-cell grayed" id="${elId}" href="${result.url}" target="_blank" rel="noopener" title="${label}" data-q="${q}">
+    <img src="${PLACEHOLDER_IMG}" data-src="${result.image}" alt="${label}" loading="lazy">
+  </a>`;
+  const newEl = document.getElementById(elId);
+  const img = newEl && newEl.querySelector('img[data-src]');
+  if(img) hydrateSingleImage(img);
+}
+async function hydrateChartArt(muFlat){
+  const token = localStorage.getItem('access_token');
+  if(!token) return;
+  const cache = loadChartArtCache();
+  const pending = [];
+  muFlat.forEach(cell => {
+    if(cell.match) return;
+    const key = normalizeStr(cell.artist) + '|' + normalizeStr(cell.title);
+    const elId = 'mu-' + cell.id;
+    const label = escapeHtml(`${cell.title} — ${cell.artist}`);
+    const q = escapeHtml((cell.artist + ' ' + cell.title).toLowerCase());
+    if(Object.prototype.hasOwnProperty.call(cache, key)){
+      applyChartArt(elId, label, q, cache[key]);
+    } else {
+      pending.push({ key, elId, label, q, artist: cell.artist, title: cell.title });
+    }
+  });
+  if(pending.length === 0) return;
+  const CONCURRENCY = 5;
+  let idx = 0;
+  async function worker(){
+    while(idx < pending.length){
+      const item = pending[idx++];
+      let result = null;
+      try{ result = await searchSpotifyAlbum(token, item.artist, item.title); }catch(e){ result = null; }
+      cache[item.key] = result;
+      applyChartArt(item.elId, item.label, item.q, result);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, worker));
+  saveChartArtCache(cache);
 }
 
 /* ============ COLOR ANALYSIS (for Rainbow sort & Mosaic) ============ */
@@ -675,6 +782,8 @@ function renderLibrary(){
   const muCells = computeMuCells(ALL_ALBUMS);
   const muFlat = [...muCells.core, ...Object.values(muCells.sections).flat()];
   muPanel.innerHTML = buildMuHtml(muCells);
+  hydrateImages(muPanel);
+  hydrateChartArt(muFlat);
 
   function updateCountLine(){
     if(activeView === 'library'){
@@ -767,13 +876,14 @@ function renderLibrary(){
     grid.style.gridTemplateColumns = '';
     grid.innerHTML = list.map(a => `
       <a class="album" href="${a.url}" target="_blank" rel="noopener" title="${a.name} — ${a.artist} (${a.year})">
-        <div class="cover-wrap"><img src="${a.image}" alt="${a.name}" loading="lazy"></div>
+        <div class="cover-wrap"><img src="${PLACEHOLDER_IMG}" data-src="${a.image}" alt="${a.name}" loading="lazy"></div>
         <div class="meta">
           <p class="title">${a.name}</p>
           <p class="artist">${a.artist}</p>
           <p class="year">${a.year}</p>
         </div>
       </a>`).join('');
+    hydrateImages(grid);
   }
 
   function openRandomModal(poolOverride){
@@ -785,7 +895,7 @@ function renderLibrary(){
       <div class="modal-backdrop" id="modalBackdrop">
         <div class="modal-card">
           <button class="modal-close" id="modalClose">✕</button>
-          <img src="${pick.image}" alt="${pick.name}">
+          <img src="${PLACEHOLDER_IMG}" data-src="${pick.image}" alt="${pick.name}">
           <p class="title">${pick.name}</p>
           <p class="artist">${pick.artist}</p>
           <p class="year">${pick.year}</p>
@@ -795,6 +905,7 @@ function renderLibrary(){
           </div>
         </div>
       </div>`;
+    hydrateImages(root);
     document.getElementById('modalClose').onclick = closeModal;
     document.getElementById('modalBackdrop').addEventListener('click', (e) => {
       if(e.target.id === 'modalBackdrop') closeModal();
