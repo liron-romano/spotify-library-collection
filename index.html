@@ -85,6 +85,33 @@
 
   .empty-state{text-align:center;padding:100px 20px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:14px;}
 
+  /* ---------- View tabs ---------- */
+  .view-tabs{display:flex;gap:8px;width:100%;margin-bottom:2px;}
+  .view-tab{padding:9px 16px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);}
+  .view-tab:hover{color:var(--ink);}
+  .view-tab.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);}
+
+  /* ---------- MU tab ---------- */
+  .mu-heading{font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:38px 0 14px;}
+  .mu-heading:first-child{margin-top:0;}
+  .mu-core-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
+  .mu-core-grid.gapless{gap:0;}
+  .mu-scroll{overflow-x:auto;padding-bottom:6px;}
+  .mu-section-grid{display:grid;grid-template-columns:repeat(12,minmax(52px,1fr)) 26px;gap:8px;margin-bottom:8px;min-width:700px;}
+  .mu-section-grid.gapless{gap:0;}
+  .mu-row-label{display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .mu-col-labels{display:grid;grid-template-columns:repeat(12,minmax(52px,1fr)) 26px;gap:8px;margin-top:6px;min-width:700px;}
+  .mu-col-labels span{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+  .mu-cell{position:relative;aspect-ratio:1/1;border-radius:5px;overflow:hidden;background:var(--line);display:block;text-decoration:none;transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;}
+  .mu-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+  a.mu-cell:hover{transform:translateY(-2px);box-shadow:0 10px 18px -8px var(--shadow);}
+  .mu-cell.grayed{filter:grayscale(1);opacity:.4;cursor:default;}
+  .mu-cell.grayed:hover{opacity:.65;}
+  .mu-cell.dimmed{opacity:.08 !important;pointer-events:none;}
+  .mu-cell .fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:8.5px;line-height:1.25;color:var(--muted);text-align:center;padding:4px;}
+  .mu-core-grid.gapless .mu-cell, .mu-section-grid.gapless .mu-cell{border-radius:0;}
+  .mu-count-note{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:20px;}
+
   /* ---------- Random pick modal ---------- */
   .modal-backdrop{position:fixed;inset:0;background:rgba(10,10,8,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;}
   .modal-card{position:relative;background:var(--card);border-radius:14px;max-width:380px;width:100%;padding:32px;text-align:center;box-shadow:0 24px 60px -20px rgba(0,0,0,.4);}
@@ -253,6 +280,197 @@ async function fetchAllAlbums(token){
   return albums;
 }
 
+/* ============ MU CHART DATA ============ */
+const MU_CORE = [
+  ["Radiohead","Kid A"],
+  ["My Bloody Valentine","Loveless"],
+  ["Animal Collective","Merriweather Post Pavilion"],
+  ["Talking Heads","Remain in Light"],
+  ["Slint","Spiderland"],
+  ["King Crimson","In the Court of the Crimson King"],
+  ["Godspeed You! Black Emperor","Lift Your Skinny Fists Like Antennas to Heaven"],
+  ["Kanye West","My Beautiful Dark Twisted Fantasy"],
+  ["Death Grips","The Money Store"],
+  ["American Football","American Football"],
+  ["Captain Beefheart & His Magic Band","Trout Mask Replica"],
+  ["Swans","Soundtracks For The Blind"],
+  ["The Beach Boys","Pet Sounds"],
+  ["The Velvet Underground","The Velvet Underground & Nico"]
+];
+
+const MU_SECTIONS = {
+  A: [
+    ["Radiohead","OK Computer"],
+    ["Radiohead","In Rainbows"],
+    ["Have a Nice Life","Deathconsciousness"],
+    ["Sigur Rós","Ágætis Byrjun"],
+    ["Godspeed You! Black Emperor","F# A# ∞"],
+    ["Talk Talk","Laughing Stock"],
+    ["Slowdive","Souvlaki"],
+    ["Björk","Homogenic"],
+    ["Nirvana","Nevermind"],
+    ["Nirvana","In Utero"],
+    ["Elliott Smith","Either/Or"],
+    ["Jeff Buckley","Grace"]
+  ],
+  B: [
+    ["The Smashing Pumpkins","Siamese Dream"],
+    ["Pavement","Slanted & Enchanted"],
+    ["Grimes","Visions"],
+    ["The Flaming Lips","The Soft Bulletin"],
+    ["Modest Mouse","The Lonesome Crowded West"],
+    ["Modest Mouse","The Moon & Antarctica"],
+    ["Weezer","Weezer"],
+    ["Weezer","Pinkerton"],
+    ["Nine Inch Nails","The Downward Spiral"],
+    ["Xiu Xiu","A Promise"],
+    ["Built to Spill","Perfect From Now On"],
+    ["Les Rallizes Dénudés","'77 Live"]
+  ],
+  C: [
+    ["Yo La Tengo","I Can Hear the Heart Beating as One"],
+    ["The Magnetic Fields","69 Love Songs"],
+    ["Fugazi","Repeater"],
+    ["Cardiacs","Sing to God"],
+    ["Red House Painters","Down Colorful Hill"],
+    ["Codeine","Frigid Stars"],
+    ["Spiritualized","Ladies and Gentlemen We Are Floating in Space"],
+    ["Low","I Could Live in Hope"],
+    ["Macintosh Plus","Floral Shoppe"],
+    ["Duster","Stratosphere"],
+    ["Lisa Germano","Geek the Girl"],
+    ["Giles Corey","Giles Corey"]
+  ],
+  D: [
+    ["Royal Trux","Twin Infinitives"],
+    ["At the Drive-In","Relationship of Command"],
+    ["Drive Like Jehu","Yank Crime"],
+    ["Unwound","Leaves Turn Inside You"],
+    ["Cap'n Jazz","Analphabetapolothology"],
+    ["Beck","Sea Change"],
+    ["Jim O'Rourke","Eureka"],
+    ["James Blake","James Blake"],
+    ["The Dismemberment Plan","Emergency & I"],
+    ["Sweet Trip","Velocity : Design : Comfort"],
+    ["Brand New","The Devil and God Are Raging Inside Me"],
+    ["Portishead","Dummy"]
+  ],
+  E: [
+    ["Death Grips","Exmilitary"],
+    ["Death Grips","No Love Deep Web"],
+    ["Joanna Newsom","Ys"],
+    ["Joanna Newsom","Have One on Me"],
+    ["The Strokes","Is This It"],
+    ["Candy Claws","Ceres & Calypso in the Deep Time"],
+    ["Tim Hecker","Ravedeath, 1972"],
+    ["The Microphones","The Glow, Pt. 2"],
+    ["They Might Be Giants","Flood"],
+    ["Tame Impala","Lonerism"],
+    ["Sufjan Stevens","Illinois"],
+    ["Sufjan Stevens","The Age of Adz"]
+  ],
+  F: [
+    ["Sun Kil Moon","Benji"],
+    ["Tortoise","Millions Now Living Will Never Die"],
+    ["Arcade Fire","Funeral"],
+    ["The Avalanches","Since I Left You"],
+    ["Gorillaz","Demon Days"],
+    ["Mac DeMarco","Salad Days"],
+    ["Mercury Rev","Yerself Is Steam"],
+    ["Don Caballero","What Burns Never Returns"],
+    ["The Jesus Lizard","Goat"],
+    ["The Mars Volta","De-Loused in the Comatorium"],
+    ["Coil","The Ape of Naples"],
+    ["LCD Soundsystem","Sound Of Silver"]
+  ],
+  G: [
+    ["Swans","The Seer"],
+    ["Swans","To Be Kind"],
+    ["Fishmans","Long Season"],
+    ["Boredoms","Vision Creation Newsun"],
+    ["Interpol","Turn on the Bright Lights"],
+    ["Fleet Foxes","Fleet Foxes"],
+    ["Nick Cave & The Bad Seeds","Let Love In"],
+    ["Dean Blunt","The Redeemer"],
+    ["The Antlers","Hospice"],
+    ["Kanye West","Yeezus"],
+    ["The Olivia Tremor Control","Black Foliage: Animation Music"],
+    ["Ween","The Mollusk"]
+  ],
+  H: [
+    ["Panda Bear","Person Pitch"],
+    ["The Beach Boys","The SMiLE Sessions"],
+    ["Belle and Sebastian","If You're Feeling Sinister"],
+    ["Animal Collective","Spirit They're Gone, Spirit They've Vanished"],
+    ["Animal Collective","Sung Tongs"],
+    ["Animal Collective","Strawberry Jam"],
+    ["Queens of the Stone Age","Songs for the Deaf"],
+    ["Stars of the Lid","The Tired Sounds of Stars of the Lid"],
+    ["Car Seat Headrest","Twin Fantasy"],
+    ["Mr. Bungle","California"],
+    ["Ride","Nowhere"],
+    ["Stereolab","Transient Random-Noise Bursts with Announcements"]
+  ]
+};
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function normalizeStr(s){
+  return (s||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/&/g,' and ')
+    .replace(/[’']/g,'')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+}
+function stripEdition(s){
+  return (s||'').replace(/\s*[\(\[][^)\]]*(deluxe|remaster|edition|version|bonus|anniversary|mono|stereo|expanded)[^)\]]*[\)\]]/gi, '');
+}
+function findLibraryMatch(chartArtist, chartAlbum, library){
+  const na = normalizeStr(chartArtist);
+  const nt = normalizeStr(stripEdition(chartAlbum));
+  return library.find(a => {
+    const la = normalizeStr(a.artist);
+    const lt = normalizeStr(stripEdition(a.name));
+    const artistMatch = la === na || la.includes(na) || na.includes(la);
+    const titleMatch = lt === nt || lt.includes(nt) || nt.includes(lt);
+    return artistMatch && titleMatch;
+  });
+}
+function computeMuCells(library){
+  const mapEntry = ([artist, title]) => ({ artist, title, match: findLibraryMatch(artist, title, library) });
+  return {
+    core: MU_CORE.map(mapEntry),
+    sections: Object.fromEntries(Object.entries(MU_SECTIONS).map(([k, v]) => [k, v.map(mapEntry)]))
+  };
+}
+function muCellHtml(cell){
+  const label = escapeHtml(`${cell.title} — ${cell.artist}`);
+  const q = escapeHtml((cell.artist + ' ' + cell.title).toLowerCase());
+  if(cell.match){
+    return `<a class="mu-cell" href="${cell.match.url}" target="_blank" rel="noopener" title="${label}" data-q="${q}">
+      <img src="${cell.match.image}" alt="${label}" loading="lazy">
+    </a>`;
+  }
+  return `<div class="mu-cell grayed" title="${label}" data-q="${q}">
+    <div class="fallback">${escapeHtml(cell.title)}</div>
+  </div>`;
+}
+function buildMuHtml(cells){
+  let html = `<div class="mu-heading">/mu/ Core</div>
+    <div class="mu-core-grid" id="muCoreGrid">${cells.core.map(muCellHtml).join('')}</div>
+    <div class="mu-heading">Sub-/mu/ Core</div>
+    <div class="mu-scroll"><div id="muSections">`;
+  Object.keys(cells.sections).forEach(letter => {
+    html += `<div class="mu-section-grid">${cells.sections[letter].map(muCellHtml).join('')}<div class="mu-row-label">${letter}</div></div>`;
+  });
+  html += `<div class="mu-col-labels">${Array.from({length:12}, (_,i) => `<span>${i+1}</span>`).join('')}<span></span></div>`;
+  html += `</div></div>`;
+  return html;
+}
+
 /* ============ COLOR ANALYSIS (for Rainbow sort & Mosaic) ============ */
 function analyzeCoverColor(url){
   return new Promise((resolve) => {
@@ -389,34 +607,43 @@ function renderLibrary(){
       <div class="wrap" data-wrap>
         <p class="eyebrow">Your Spotify Library</p>
         <h1>Collection</h1>
-        <p class="count-line"><strong id="visibleCount">${ALL_ALBUMS.length}</strong> of ${ALL_ALBUMS.length} albums</p>
+        <p class="count-line" id="countLine"><strong id="visibleCount">${ALL_ALBUMS.length}</strong> of ${ALL_ALBUMS.length} albums</p>
       </div>
     </header>
     <div class="controls">
-      <div class="wrap" data-wrap style="display:flex;gap:14px;flex-wrap:wrap;width:100%;align-items:center;">
-        <div class="search-box">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8778" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input id="searchInput" type="text" placeholder="Search by artist, album, or year…">
+      <div class="wrap" data-wrap style="display:flex;flex-direction:column;gap:14px;width:100%;">
+        <div class="view-tabs">
+          <button class="view-tab active" id="tabLibraryBtn" data-view="library">Library</button>
+          <button class="view-tab" id="tabMuBtn" data-view="mu">/mu/</button>
         </div>
-        <select id="sortSelect">
-          <option value="artist">Sort by Artist</option>
-          <option value="album">Sort by Album</option>
-          <option value="year">Sort by Year</option>
-          <option value="added">Sort by Date Added</option>
-          <option value="rainbow">🌈 Rainbow (by color)</option>
-        </select>
-        <button class="dir-btn" id="dirBtn">↓ Asc</button>
-        <button class="toggle-btn" id="themeBtn">${darkOn ? '☀ Light' : '☾ Dark'}</button>
-        <button class="toggle-btn" id="gaplessBtn">▦ Gapless</button>
-        <button class="toggle-btn" id="fullWidthBtn">⇔ Fill screen</button>
-        <button class="toggle-btn" id="collageBtn">🖼 Collage</button>
-        <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;width:100%;align-items:center;">
+          <div class="search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8778" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="searchInput" type="text" placeholder="Search by artist, album, or year…">
+          </div>
+          <select id="sortSelect">
+            <option value="artist">Sort by Artist</option>
+            <option value="album">Sort by Album</option>
+            <option value="year">Sort by Year</option>
+            <option value="added">Sort by Date Added</option>
+            <option value="rainbow">🌈 Rainbow (by color)</option>
+          </select>
+          <button class="dir-btn" id="dirBtn">↓ Asc</button>
+          <button class="toggle-btn" id="themeBtn">${darkOn ? '☀ Light' : '☾ Dark'}</button>
+          <button class="toggle-btn" id="gaplessBtn">▦ Gapless</button>
+          <button class="toggle-btn" id="fullWidthBtn">⇔ Fill screen</button>
+          <button class="toggle-btn" id="collageBtn">🖼 Collage</button>
+          <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
+        </div>
       </div>
     </div>
     <main>
       <div class="wrap" data-wrap>
-        <div class="grid" id="grid"></div>
-        <div class="empty-state" id="emptyState" style="display:none;">No albums match your search.</div>
+        <div id="libraryPanel">
+          <div class="grid" id="grid"></div>
+          <div class="empty-state" id="emptyState" style="display:none;">No albums match your search.</div>
+        </div>
+        <div id="muPanel" style="display:none;"></div>
       </div>
     </main>
     <div id="modalRoot"></div>`;
@@ -435,6 +662,56 @@ function renderLibrary(){
   const collageBtn = document.getElementById('collageBtn');
   const randomBtn = document.getElementById('randomBtn');
   const grid = document.getElementById('grid');
+
+  const muPanel = document.getElementById('muPanel');
+  const libraryPanel = document.getElementById('libraryPanel');
+  const tabLibraryBtn = document.getElementById('tabLibraryBtn');
+  const tabMuBtn = document.getElementById('tabMuBtn');
+  const countLine = document.getElementById('countLine');
+  let activeView = 'library';
+
+  const muCells = computeMuCells(ALL_ALBUMS);
+  const muFlat = [...muCells.core, ...Object.values(muCells.sections).flat()];
+  muPanel.innerHTML = buildMuHtml(muCells);
+
+  function updateCountLine(){
+    if(activeView === 'library'){
+      countLine.innerHTML = `<strong id="visibleCount">${currentList.length}</strong> of ${ALL_ALBUMS.length} albums`;
+    } else {
+      const matched = muFlat.filter(c => c.match).length;
+      countLine.innerHTML = `<strong>${matched}</strong> of ${muFlat.length} chart albums in your library`;
+    }
+  }
+
+  function filterMuBySearch(){
+    const q = searchInput.value.trim().toLowerCase();
+    muPanel.querySelectorAll('.mu-cell').forEach(el => {
+      const hay = el.dataset.q || '';
+      el.classList.toggle('dimmed', !(!q || hay.includes(q)));
+    });
+  }
+
+  function switchView(view){
+    activeView = view;
+    tabLibraryBtn.classList.toggle('active', view === 'library');
+    tabMuBtn.classList.toggle('active', view === 'mu');
+    libraryPanel.style.display = view === 'library' ? '' : 'none';
+    muPanel.style.display = view === 'mu' ? '' : 'none';
+    sortSelect.disabled = view === 'mu';
+    dirBtn.disabled = view === 'mu';
+    sortSelect.style.opacity = dirBtn.style.opacity = view === 'mu' ? '.45' : '';
+    updateCountLine();
+    filterMuBySearch();
+  }
+  tabLibraryBtn.addEventListener('click', () => switchView('library'));
+  tabMuBtn.addEventListener('click', () => switchView('mu'));
+
+  function getMuMatchedPool(){
+    const q = searchInput.value.trim().toLowerCase();
+    return muFlat
+      .filter(c => c.match && (!q || (c.artist + ' ' + c.title).toLowerCase().includes(q)))
+      .map(c => c.match);
+  }
 
   let currentList = ALL_ALBUMS.slice();
 
@@ -464,7 +741,8 @@ function renderLibrary(){
     }
     currentList = list;
     renderGrid(list);
-    document.getElementById('visibleCount').textContent = list.length;
+    updateCountLine();
+    filterMuBySearch();
   }
 
   function renderLoadingInline(msg){
@@ -496,8 +774,9 @@ function renderLibrary(){
       </a>`).join('');
   }
 
-  function openRandomModal(){
-    const pool = currentList.length ? currentList : ALL_ALBUMS;
+  function openRandomModal(poolOverride){
+    const pool = poolOverride || (currentList.length ? currentList : ALL_ALBUMS);
+    if(pool.length === 0){ alert('No matching albums to pick from.'); return; }
     const pick = pool[Math.floor(Math.random() * pool.length)];
     const root = document.getElementById('modalRoot');
     root.innerHTML = `
@@ -518,7 +797,7 @@ function renderLibrary(){
     document.getElementById('modalBackdrop').addEventListener('click', (e) => {
       if(e.target.id === 'modalBackdrop') closeModal();
     });
-    document.getElementById('againBtn').onclick = openRandomModal;
+    document.getElementById('againBtn').onclick = () => openRandomModal(poolOverride);
   }
   function closeModal(){
     document.getElementById('modalRoot').innerHTML = '';
@@ -719,6 +998,7 @@ function renderLibrary(){
     gapless = !gapless;
     gaplessBtn.classList.toggle('active', gapless);
     grid.className = 'grid' + (gapless ? ' gapless' : '');
+    muPanel.querySelectorAll('.mu-core-grid, .mu-section-grid').forEach(el => el.classList.toggle('gapless', gapless));
   });
   fullWidthBtn.addEventListener('click', () => {
     fullWidth = !fullWidth;
@@ -726,8 +1006,12 @@ function renderLibrary(){
     document.querySelectorAll('[data-wrap]').forEach(el => el.classList.toggle('full-width', fullWidth));
   });
   collageBtn.addEventListener('click', openCollageModal);
-  randomBtn.addEventListener('click', openRandomModal);
+  randomBtn.addEventListener('click', () => {
+    if(activeView === 'mu') openRandomModal(getMuMatchedPool());
+    else openRandomModal();
+  });
 
+  updateCountLine();
   apply();
 }
 
