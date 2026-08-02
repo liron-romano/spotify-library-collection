@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collection — Your Spotify Albums</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --paper:#F5F4EF;
+    --ink:#1B1B18;
+    --muted:#8A8778;
+    --line:#E2E0D6;
+    --accent:#20402D;
+    --accent-soft:#E7EEE7;
+    --card:#FFFFFF;
+  }
+
+  [data-theme="dark"]{
+    --paper:#151513;
+    --ink:#F1F0E9;
+    --muted:#8F8C7E;
+    --line:#2C2B27;
+    --accent:#7FCB9C;
+    --accent-soft:#1E2B22;
+    --card:#1C1C19;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;transition:background .2s ease, color .2s ease;}
+  ::selection{background:var(--accent-soft);color:var(--accent);}
+
+  a{color:inherit;}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+
+  /* ---------- Header ---------- */
+  header{padding:56px 0 28px;border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+  h1{font-family:'Fraunces',serif;font-weight:500;font-size:44px;line-height:1;margin:0 0 6px;letter-spacing:-.01em;}
+  .count-line{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
+  .count-line strong{color:var(--ink);font-weight:500;}
+
+  /* ---------- Controls ---------- */
+  .controls{position:sticky;top:0;background:var(--paper);z-index:10;padding:18px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .search-box{flex:1 1 260px;position:relative;}
+  .search-box input{width:100%;padding:11px 14px 11px 36px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:'Inter';font-size:14px;color:var(--ink);outline:none;transition:border-color .15s;}
+  .search-box input:focus{border-color:var(--accent);}
+  .search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45;}
+  select{padding:11px 34px 11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-family:'Inter';font-size:14px;color:var(--ink);outline:none;cursor:pointer;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A8778' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;}
+  select:focus{border-color:var(--accent);}
+  .dir-btn{padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
+  .dir-btn:hover{color:var(--ink);border-color:var(--accent);}
+
+  .toggle-btn{padding:11px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+  .toggle-btn:hover{color:var(--ink);border-color:var(--accent);}
+  .toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .toggle-btn.rainbow.active{background:linear-gradient(90deg,#e14b4b,#e2a63d,#dfd23c,#4bbf6b,#3f8fe0,#8a5fe0);color:#fff;border-color:transparent;}
+
+  /* ---------- Grid ---------- */
+  main{padding:36px 0 90px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px;transition:gap .2s ease;}
+  .album{cursor:pointer;text-decoration:none;display:block;}
+  .cover-wrap{position:relative;aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .2s ease, box-shadow .2s ease, border-radius .2s ease;}
+  .album:hover .cover-wrap{transform:translateY(-3px);box-shadow:0 14px 24px -10px rgba(20,20,15,.25);}
+  .cover-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .meta{margin-top:10px;}
+  .meta .title{font-size:14px;font-weight:500;line-height:1.3;margin:0 0 2px;color:var(--ink);}
+  .meta .artist{font-size:13px;color:var(--muted);margin:0;}
+  .meta .year{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-top:4px;}
+
+  /* Gapless mode: wall-to-wall covers, no meta, no radius */
+  .grid.gapless{gap:0;}
+  .grid.gapless .cover-wrap{border-radius:0;box-shadow:none;}
+  .grid.gapless .album:hover .cover-wrap{transform:none;box-shadow:inset 0 0 0 1000px rgba(0,0,0,.18);}
+  .grid.gapless .meta{display:none;}
+
+  .empty-state{text-align:center;padding:100px 20px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:14px;}
+
+  /* ---------- Random pick modal ---------- */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(10,10,8,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;}
+  .modal-card{position:relative;background:var(--card);border-radius:14px;max-width:380px;width:100%;padding:32px;text-align:center;box-shadow:0 24px 60px -20px rgba(0,0,0,.4);}
+  .modal-card img{width:220px;height:220px;object-fit:cover;border-radius:8px;box-shadow:0 10px 30px -10px rgba(0,0,0,.35);margin-bottom:20px;}
+  .modal-card p.eyebrow{margin:0 0 12px;}
+  .modal-card .title{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin:0 0 4px;}
+  .modal-card .artist{font-size:14px;color:var(--muted);margin:0 0 2px;}
+  .modal-card .year{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin:0 0 22px;}
+  .modal-actions{display:flex;gap:10px;}
+  .modal-actions a, .modal-actions button{flex:1;padding:11px;border-radius:7px;font-family:'Inter';font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}
+  .modal-actions .open-link{background:var(--accent);color:#fff;border:none;}
+  .modal-actions .again-btn{background:var(--paper);color:var(--ink);border:1px solid var(--line);}
+  .modal-actions .again-btn:hover{border-color:var(--accent);}
+  .modal-close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
+
+  /* ---------- Login screen ---------- */
+  .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{max-width:420px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:40px 36px;}
+  .login-card h1{font-size:28px;margin-bottom:8px;}
+  .login-card p{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 24px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;}
+  .field input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:7px;font-family:'Inter';font-size:14px;background:var(--paper);outline:none;}
+  .field input:focus{border-color:var(--accent);}
+  .connect-btn{width:100%;padding:13px;border:none;border-radius:7px;background:var(--accent);color:#fff;font-family:'Inter';font-weight:500;font-size:14px;cursor:pointer;margin-top:6px;}
+  .connect-btn:hover{opacity:.92;}
+  .hint{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;}
+  .hint code{background:var(--accent-soft);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .error-msg{background:#FBEAE8;color:#9B3B2F;padding:10px 12px;border-radius:7px;font-size:13px;margin-bottom:16px;}
+
+  .loading{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:13px;}
+
+  @media (max-width:600px){
+    .wrap{padding:0 18px;}
+    h1{font-size:32px;}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:18px 14px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const SCOPES = "user-library-read";
+
+/* ============ PKCE HELPERS ============ */
+function base64url(buffer){
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function sha256(plain){
+  const data = new TextEncoder().encode(plain);
+  return await crypto.subtle.digest('SHA-256', data);
+}
+function randomString(len){
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => ('0'+b.toString(16)).slice(-2)).join('').slice(0,len);
+}
+
+async function startAuth(clientId){
+  const verifier = randomString(64);
+  const challenge = base64url(await sha256(verifier));
+  sessionStorage.setItem('pkce_verifier', verifier);
+  sessionStorage.setItem('spotify_client_id', clientId);
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+    scope: SCOPES
+  });
+  window.location = 'https://accounts.spotify.com/authorize?' + params.toString();
+}
+
+async function exchangeCode(code){
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  const clientId = sessionStorage.getItem('spotify_client_id');
+  const body = new URLSearchParams({
+    client_id: clientId,
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: REDIRECT_URI,
+    code_verifier: verifier
+  });
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  });
+  if(!res.ok) throw new Error('Token exchange failed');
+  const data = await res.json();
+  sessionStorage.setItem('access_token', data.access_token);
+  sessionStorage.setItem('token_expires', Date.now() + data.expires_in*1000);
+}
+
+/* ============ DATA FETCH ============ */
+async function fetchAllAlbums(token){
+  let albums = [];
+  let url = 'https://api.spotify.com/v1/me/albums?limit=50';
+  while(url){
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token }});
+    if(!res.ok) throw new Error('Failed to fetch albums ('+res.status+')');
+    const data = await res.json();
+    albums = albums.concat(data.items.map(it => ({
+      id: it.album.id,
+      name: it.album.name,
+      artist: it.album.artists.map(a=>a.name).join(', '),
+      year: (it.album.release_date||'').slice(0,4),
+      image: (it.album.images[1] || it.album.images[0] || {}).url || '',
+      added_at: it.added_at,
+      url: it.album.external_urls.spotify
+    })));
+    url = data.next;
+  }
+  return albums;
+}
+
+/* ============ COLOR ANALYSIS (for Rainbow sort) ============ */
+function getDominantHue(url){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try{
+        const size = 8;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        let r=0,g=0,b=0,n=0;
+        for(let i=0;i<data.length;i+=4){
+          r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++;
+        }
+        r/=n; g/=n; b/=n;
+        const [h] = rgbToHsl(r,g,b);
+        resolve(h);
+      }catch(e){ resolve(0); }
+    };
+    img.onerror = () => resolve(0);
+    img.src = url;
+  });
+}
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h=0, s=0, l=(max+min)/2;
+  if(max !== min){
+    const d = max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      case b: h=(r-g)/d + 4; break;
+    }
+    h *= 60;
+  }
+  return [h, s, l];
+}
+async function ensureHues(albums){
+  const pending = albums.filter(a => a.hue === undefined && a.image);
+  const CONCURRENCY = 8;
+  let idx = 0;
+  async function worker(){
+    while(idx < pending.length){
+      const a = pending[idx++];
+      a.hue = await getDominantHue(a.image);
+    }
+  }
+  await Promise.all(Array.from({length: Math.min(CONCURRENCY, pending.length)}, worker));
+}
+
+/* ============ RENDER: LOGIN ============ */
+function renderLogin(errorMsg){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="login-screen">
+      <div class="login-card">
+        <h1>Your Collection</h1>
+        <p>Connect your Spotify account to view your saved albums as a browsable grid.</p>
+        ${errorMsg ? `<div class="error-msg">${errorMsg}</div>` : ''}
+        <div class="field">
+          <label>Client ID</label>
+          <input id="clientId" type="text" placeholder="from your Spotify Developer Dashboard" autocomplete="off">
+        </div>
+        <button class="connect-btn" id="connectBtn">Connect to Spotify</button>
+        <div class="hint">
+          In your <a href="https://developer.spotify.com/dashboard" target="_blank">Spotify Developer Dashboard</a>,
+          add this exact Redirect URI to your app's settings:<br>
+          <code>${REDIRECT_URI}</code><br><br>
+          No client secret needed — this uses the secure PKCE flow, so nothing sensitive is ever exposed in the browser.
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('connectBtn').onclick = () => {
+    const id = document.getElementById('clientId').value.trim();
+    if(!id){ alert('Enter your Client ID first.'); return; }
+    startAuth(id);
+  };
+}
+
+function renderLoading(msg){
+  document.getElementById('app').innerHTML = `<div class="loading">${msg}</div>`;
+}
+
+/* ============ RENDER: LIBRARY ============ */
+let ALL_ALBUMS = [];
+
+function renderLibrary(){
+  const app = document.getElementById('app');
+  const darkOn = sessionStorage.getItem('theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', darkOn ? 'dark' : 'light');
+  const gaplessOn = false;
+
+  app.innerHTML = `
+    <header>
+      <div class="wrap">
+        <p class="eyebrow">Your Spotify Library</p>
+        <h1>Collection</h1>
+        <p class="count-line"><strong id="visibleCount">${ALL_ALBUMS.length}</strong> of ${ALL_ALBUMS.length} albums</p>
+      </div>
+    </header>
+    <div class="controls">
+      <div class="wrap" style="display:flex;gap:14px;flex-wrap:wrap;width:100%;">
+        <div class="search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8778" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="searchInput" type="text" placeholder="Search by artist, album, or year…">
+        </div>
+        <select id="sortSelect">
+          <option value="artist">Sort by Artist</option>
+          <option value="album">Sort by Album</option>
+          <option value="year">Sort by Year</option>
+          <option value="added">Sort by Date Added</option>
+          <option value="rainbow">🌈 Rainbow (by color)</option>
+        </select>
+        <button class="dir-btn" id="dirBtn">↓ Asc</button>
+        <button class="toggle-btn" id="themeBtn">${darkOn ? '☀ Light' : '☾ Dark'}</button>
+        <button class="toggle-btn" id="gaplessBtn">▦ Gapless</button>
+        <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
+      </div>
+    </div>
+    <main>
+      <div class="wrap">
+        <div class="grid" id="grid"></div>
+        <div class="empty-state" id="emptyState" style="display:none;">No albums match your search.</div>
+      </div>
+    </main>
+    <div id="modalRoot"></div>`;
+
+  let sortKey = 'artist';
+  let ascending = true;
+  let gapless = false;
+
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const dirBtn = document.getElementById('dirBtn');
+  const themeBtn = document.getElementById('themeBtn');
+  const gaplessBtn = document.getElementById('gaplessBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  const grid = document.getElementById('grid');
+
+  let currentList = ALL_ALBUMS.slice();
+
+  async function apply(){
+    const q = searchInput.value.trim().toLowerCase();
+    let list = ALL_ALBUMS.filter(a =>
+      !q || a.artist.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.year.includes(q)
+    );
+
+    if(sortKey === 'rainbow'){
+      sortSelect.disabled = true;
+      renderLoadingInline('Analyzing cover colors…');
+      await ensureHues(list);
+      sortSelect.disabled = false;
+      list.sort((a,b) => (ascending ? 1 : -1) * ((a.hue||0) - (b.hue||0)));
+    } else {
+      list.sort((a,b) => {
+        let av, bv;
+        if(sortKey === 'artist'){ av=a.artist.toLowerCase(); bv=b.artist.toLowerCase(); }
+        else if(sortKey === 'album'){ av=a.name.toLowerCase(); bv=b.name.toLowerCase(); }
+        else if(sortKey === 'year'){ av=a.year; bv=b.year; }
+        else { av=a.added_at; bv=b.added_at; }
+        if(av < bv) return ascending ? -1 : 1;
+        if(av > bv) return ascending ? 1 : -1;
+        return 0;
+      });
+    }
+    currentList = list;
+    renderGrid(list);
+    document.getElementById('visibleCount').textContent = list.length;
+  }
+
+  function renderLoadingInline(msg){
+    grid.style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').textContent = msg;
+  }
+
+  function renderGrid(list){
+    const empty = document.getElementById('emptyState');
+    if(list.length === 0){
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      empty.textContent = 'No albums match your search.';
+      return;
+    }
+    grid.style.display = 'grid';
+    empty.style.display = 'none';
+    grid.className = 'grid' + (gapless ? ' gapless' : '');
+    grid.innerHTML = list.map(a => `
+      <a class="album" href="${a.url}" target="_blank" rel="noopener" title="${a.name} — ${a.artist} (${a.year})">
+        <div class="cover-wrap"><img src="${a.image}" alt="${a.name}" loading="lazy"></div>
+        <div class="meta">
+          <p class="title">${a.name}</p>
+          <p class="artist">${a.artist}</p>
+          <p class="year">${a.year}</p>
+        </div>
+      </a>`).join('');
+  }
+
+  function openRandomModal(){
+    const pool = currentList.length ? currentList : ALL_ALBUMS;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const root = document.getElementById('modalRoot');
+    root.innerHTML = `
+      <div class="modal-backdrop" id="modalBackdrop">
+        <div class="modal-card">
+          <button class="modal-close" id="modalClose">✕</button>
+          <p class="eyebrow">Tonight's pick</p>
+          <img src="${pick.image}" alt="${pick.name}">
+          <p class="title">${pick.name}</p>
+          <p class="artist">${pick.artist}</p>
+          <p class="year">${pick.year}</p>
+          <div class="modal-actions">
+            <button class="again-btn" id="againBtn">Pick again</button>
+            <a class="open-link" href="${pick.url}" target="_blank" rel="noopener">Open in Spotify</a>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('modalClose').onclick = closeModal;
+    document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+      if(e.target.id === 'modalBackdrop') closeModal();
+    });
+    document.getElementById('againBtn').onclick = openRandomModal;
+  }
+  function closeModal(){
+    document.getElementById('modalRoot').innerHTML = '';
+  }
+
+  searchInput.addEventListener('input', apply);
+  sortSelect.addEventListener('change', e => { sortKey = e.target.value; apply(); });
+  dirBtn.addEventListener('click', () => {
+    ascending = !ascending;
+    dirBtn.textContent = ascending ? '↓ Asc' : '↑ Desc';
+    apply();
+  });
+  themeBtn.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    sessionStorage.setItem('theme', next);
+    themeBtn.textContent = next === 'dark' ? '☀ Light' : '☾ Dark';
+  });
+  gaplessBtn.addEventListener('click', () => {
+    gapless = !gapless;
+    gaplessBtn.classList.toggle('active', gapless);
+    grid.className = 'grid' + (gapless ? ' gapless' : '');
+  });
+  randomBtn.addEventListener('click', openRandomModal);
+
+  apply();
+}
+
+/* ============ BOOTSTRAP ============ */
+async function init(){
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+  const authError = urlParams.get('error');
+
+  if(authError){
+    renderLogin('Spotify authorization was denied or failed. Please try again.');
+    return;
+  }
+
+  if(code){
+    renderLoading('Connecting to Spotify…');
+    try{
+      await exchangeCode(code);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }catch(e){
+      renderLogin('Could not complete sign-in. Double-check your Client ID and Redirect URI, then try again.');
+      return;
+    }
+  }
+
+  const token = sessionStorage.getItem('access_token');
+  const expires = sessionStorage.getItem('token_expires');
+
+  if(!token || Date.now() > Number(expires)){
+    renderLogin();
+    return;
+  }
+
+  renderLoading('Loading your albums…');
+  try{
+    ALL_ALBUMS = await fetchAllAlbums(token);
+    renderLibrary();
+  }catch(e){
+    renderLogin('Session expired or request failed. Please reconnect.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
