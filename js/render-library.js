@@ -49,6 +49,7 @@ export function renderLibrary(){
           <button class="toggle-btn" id="collageBtn">🖼 Collage</button>
           <button class="toggle-btn" id="randomBtn">🎲 Surprise me</button>
           <button class="toggle-btn" id="syncBtn">🔗 Sync</button>
+          <button class="toggle-btn" id="editedOnlyBtn" style="display:none;">✎ Edited only (0)</button>
         </div>
       </div>
     </div>
@@ -67,6 +68,7 @@ export function renderLibrary(){
   let ascending = true;
   let gapless = false;
   let fullWidth = false;
+  let editedOnly = false;
 
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
@@ -77,6 +79,7 @@ export function renderLibrary(){
   const collageBtn = document.getElementById('collageBtn');
   const randomBtn = document.getElementById('randomBtn');
   const syncBtn = document.getElementById('syncBtn');
+  const editedOnlyBtn = document.getElementById('editedOnlyBtn');
   const grid = document.getElementById('grid');
 
   const muPanel = document.getElementById('muPanel');
@@ -91,6 +94,7 @@ export function renderLibrary(){
   muPanel.innerHTML = buildMuHtml(muCells);
   hydrateImages(muPanel);
   hydrateChartArt(muFlat);
+  updateEditedCount();
 
   // Toggling "in library" (owned), or opening the artwork-fix modal, on a /mu/ cell.
   const isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
@@ -110,7 +114,10 @@ export function renderLibrary(){
     if(editBtn){
       e.preventDefault();
       e.stopPropagation();
-      openArtEditModal(editBtn.dataset.key, editBtn.dataset.artist, editBtn.dataset.title, editBtn.dataset.elId, updateCountLine);
+      openArtEditModal(editBtn.dataset.key, editBtn.dataset.artist, editBtn.dataset.title, editBtn.dataset.elId, () => {
+        updateCountLine();
+        updateEditedCount();
+      });
       return;
     }
     // Tap-to-reveal: only cells with owned/edit buttons (the "grayed" — i.e. not a
@@ -172,6 +179,7 @@ export function renderLibrary(){
           }
         });
         updateCountLine();
+        updateEditedCount();
       }
     }
   })();
@@ -187,11 +195,24 @@ export function renderLibrary(){
     }
   }
 
-  function filterMuBySearch(){
+  // Cells the user has manually corrected artwork for — marked with a blue ring in
+  // the grid (see .mu-cell.grayed.override in styles.css) and countable/filterable here.
+  function isEditedCell(el){
+    return el.classList.contains('override');
+  }
+
+  function updateEditedCount(){
+    const editedCount = muPanel.querySelectorAll('.mu-cell.override').length;
+    editedOnlyBtn.textContent = `✎ Edited only (${editedCount})`;
+  }
+
+  function updateMuVisibility(){
     const q = searchInput.value.trim().toLowerCase();
     muPanel.querySelectorAll('.mu-cell').forEach(el => {
       const hay = el.dataset.q || '';
-      const shouldDim = !(!q || hay.includes(q));
+      const matchesSearch = !q || hay.includes(q);
+      const matchesEditedFilter = !editedOnly || isEditedCell(el);
+      const shouldDim = !(matchesSearch && matchesEditedFilter);
       el.classList.toggle('dimmed', shouldDim);
       const tile = el.closest('.mu-tile');
       if(tile) tile.classList.toggle('dimmed', shouldDim);
@@ -207,8 +228,9 @@ export function renderLibrary(){
     sortSelect.disabled = view === 'mu';
     dirBtn.disabled = view === 'mu';
     sortSelect.style.opacity = dirBtn.style.opacity = view === 'mu' ? '.45' : '';
+    editedOnlyBtn.style.display = view === 'mu' ? '' : 'none';
     updateCountLine();
-    filterMuBySearch();
+    updateMuVisibility();
   }
   tabLibraryBtn.addEventListener('click', () => switchView('library'));
   tabMuBtn.addEventListener('click', () => switchView('mu'));
@@ -249,7 +271,7 @@ export function renderLibrary(){
     currentList = list;
     renderGrid(list);
     updateCountLine();
-    filterMuBySearch();
+    updateMuVisibility();
   }
 
   function renderLoadingInline(msg){
@@ -309,6 +331,11 @@ export function renderLibrary(){
   });
   collageBtn.addEventListener('click', openCollageModal);
   syncBtn.addEventListener('click', openSyncModal);
+  editedOnlyBtn.addEventListener('click', () => {
+    editedOnly = !editedOnly;
+    editedOnlyBtn.classList.toggle('active', editedOnly);
+    updateMuVisibility();
+  });
   randomBtn.addEventListener('click', () => {
     if(activeView === 'mu') openRandomModal(getMuMatchedPool());
     else openRandomModal(currentList.length ? currentList : ALL_ALBUMS);
